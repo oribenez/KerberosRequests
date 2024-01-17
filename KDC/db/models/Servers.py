@@ -1,9 +1,12 @@
+import os
 import threading
+
+from KDC.db.models.RecordAlreadyExist import RecordAlreadyExist
 
 
 class Servers:
 
-    def __init__(self, file_path='../data/servers'):
+    def __init__(self, file_path='/db/data/servers'):
         self.servers = []
         self.lock = threading.Lock()
         self.file_path = file_path
@@ -15,7 +18,7 @@ class Servers:
             servers_temp = []
 
             try:
-                with open(self.file_path, 'r') as file:
+                with open(os.getcwd()+self.file_path, 'r') as file:
                     for line in file:
                         server_data = line.strip().split(':')
                         if len(server_data) == 4:
@@ -39,8 +42,21 @@ class Servers:
             except IOError:
                 print(f"Error: Unable to save servers to file '{self.file_path}'")
 
+    def is_exist(self, other_server):
+        is_exist = False
+        for server in self.servers:
+            if server["name"] == other_server["name"]:
+                is_exist = True
+                break
+
+        return is_exist
+
     def add_server(self, server):
-        with self.lock:
-            # TODO: check if server already exist
+        # check if client already exist by name
+        if self.is_exist(server):
+            err_msg = "Server already exist"
+            print(err_msg)
+            raise RecordAlreadyExist(err_msg)
+        else:
             self.servers.append(server)
             self.save_servers_to_file()

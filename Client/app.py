@@ -1,42 +1,63 @@
-import json
-import socket
+
+
+from utils import read_user_from_file, send_request
+
+__user_creds_filename__ = 'me.info'
+__auth_server_ip__ = '127.0.0.1'
+__auth_server_port__ = 8000
+
+
+def register_new_user():
+    # ask from user the username and password to register
+    while True:
+        user_name = input("Please type your name: ") or 'Michael Jackson'  # FIXME: for testing only
+
+        if len(user_name) > 100:
+            print("Username must be max 100 characters. ")
+        else:
+            break
+
+    user_pass = input("Please type password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
+
+    # request to server - new connection
+    req_header = {
+        'client_id': 'undefined',
+        'version': 24,
+        'code': 1025
+    }
+    req_payload = {
+        'name': user_name,
+        'password': user_pass
+    }
+
+    response = send_request(__auth_server_ip__, __auth_server_port__, req_header, req_payload)
+    print("response: ", response)  # FIXME: TESTING
+
+    response_code = response["header"]["code"]
+    if response_code == 1600:  # registration success
+        print("[1600] Registration success")
+        # save user to file
+        with open(__user_creds_filename__, "w") as file:
+            client_id = response["payload"]["client_id"]
+            file.write(f"{__auth_server_ip__}:{__auth_server_port__}\n{user_name}\n{client_id}")
+
+    elif response_code == 1601:  # registration failed
+        print("[1601] Registration failed")
+
+    else:  # unknown response
+        print("Unknown response from server: ", response)
 
 
 def main():
-    port = 8000
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    try:
-        client_socket.connect(('localhost', port))
-    except ConnectionRefusedError:
-        print("Error: Connection refused. Ensure that the server is running.")
-        return
+    user = read_user_from_file(__user_creds_filename__)
 
-    try:
-        header = {
-            'client_id': 'undefined',
-            'version': 24,
-            'code': 1025
-        }
-        payload = "Sample Payload"
+    if user:  # me.info file exists
+        # TODO: request to server - connect again
+        print(user)
 
-        # Send message to server
-        # {'EOF': 0} is a sign that this is the end of the request data for the buffer to receive
-        msg_data = {'header': header, 'payload': payload} | {'EOF': 0}
-
-        # Convert the dictionary to a JSON string
-        json_data = json.dumps(msg_data)
-        client_socket.sendall(json_data.encode())
-
-        # Receive response from server
-        data = client_socket.recv(1024)
-        print(f"Received from server: {data.decode()}")
-
-    except Exception as e:
-        print(f"Error during communication: {e}")
-
-    finally:
-        client_socket.close()
+    else:  # user file not found
+        register_new_user()
 
 
 if __name__ == "__main__":

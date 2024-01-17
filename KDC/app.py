@@ -3,8 +3,12 @@ import socket
 import sys
 import threading
 
+# from KDC.db.models.Clients import Clients
+# from KDC.db.models.Servers import Servers
 from utils import read_port_from_file
 from routes import routes
+from config import __api_version__
+import KDC.db.models as models
 
 
 def handle_request(connection):
@@ -18,14 +22,22 @@ def handle_request(connection):
 
         controller = routes.get(req_code, '0')  # 0 means, not found
         controller(connection, msg_data)
-        # print(f"Received from client: {msg_data}")
-
-        # Response to client
-        msg_send = b"Server received your message"
-        connection.sendall(msg_send)
 
     except Exception as e:
         print(f"Error during communication: {e}")
+
+        # Response to client in case of error
+        err_response = {
+            'header': {
+                'version': __api_version__,
+                'code': 1609,
+                'payload_size': 0
+            }, 'payload': {
+                'error_msg': 'General server error.'
+            }
+        }
+        err_response_json = json.dumps(err_response).encode()
+        connection.sendall(err_response_json)
 
     finally:
         connection.close()
@@ -35,26 +47,30 @@ def receive_buffered_request(connection, timeout=10):
     connection.settimeout(timeout)  # Set a timeout for this connection
 
     try:
-        buffer = b''
+        data = b''
 
         while True:
-            data = connection.recv(1024)
-            if not data:
+            chunk = connection.recv(1024)
+            if not chunk:
                 # Connection closed by the client
                 break
 
-            buffer += data
+            data += chunk
 
-            if b'EOF' in buffer:
+            if b'"EOF": 0}' in chunk:  # signature of End Of File - EOF
                 break
 
-        msg_receive = buffer.decode()
+        msg_receive = data.decode()
         msg_data = json.loads(msg_receive)
 
         return msg_data
-    except:
+
+    except json.JSONDecodeError as e:
         print("Error: Invalid JSON format")
-        return None
+    except Exception as e:
+        print("Error")
+
+    return None
 
 
 def run_server():
@@ -67,6 +83,9 @@ def run_server():
     print(f"Server is listening on port {port}")
 
     try:
+        # load database models
+        models.load_db()
+
         while True:
             connection, address = server_socket.accept()
             print(f"Connection established from {address}")

@@ -1,9 +1,12 @@
+import os
 import threading
+
+from KDC.db.models.RecordAlreadyExist import RecordAlreadyExist
 
 
 class Clients:
 
-    def __init__(self, file_path='../data/clients'):
+    def __init__(self, file_path='/db/data/clients'):
         self.clients = []
         self.lock = threading.Lock()
         self.file_path = file_path
@@ -15,15 +18,16 @@ class Clients:
             clients_temp = []
 
             try:
-                with open(self.file_path, 'r') as file:
+                with open(os.getcwd()+self.file_path, 'r') as file:
+
                     for line in file:
                         client_data = line.strip().split(':')
                         if len(client_data) == 4:
                             client = {
-                                'ID': client_data[0],
-                                'Name': client_data[1],
-                                'PasswordHash': client_data[2],
-                                'LastSeen': client_data[3]
+                                'client_id': client_data[0],
+                                'name': client_data[1],
+                                'password_hash': client_data[2],
+                                'last_seen': client_data[3]
                             }
                             clients_temp.append(client)
 
@@ -32,16 +36,30 @@ class Clients:
                 print(f"Error: Unable to load clients from file '{self.file_path}'")
 
     def save_clients_to_file(self):
-        with self.lock:
-            try:
-                with open(self.file_path, 'w') as file:
-                    for client in self.clients:
-                        file.write(f"{client['ID']}:{client['Name']}:{client['PasswordHash']}:{client['LastSeen']}\n")
-            except IOError:
-                print(f"Error: Unable to save clients to file '{self.file_path}'")
+        try:
+            with open(os.getcwd()+self.file_path, 'w') as file:
+                for client in self.clients:
+                    file.write(f"{client['client_id']}:{client['name']}:{client['password_hash']}:{client['last_seen']}\n")
+        except IOError:
+            print(f"Error: Unable to save clients to file '{self.file_path}'")
+
+    def is_exist(self, other_client):
+        is_exist = False
+        for client in self.clients:
+            if client["name"] == other_client["name"]:
+                is_exist = True
+                break
+                
+        return is_exist
 
     def add_client(self, client):
         with self.lock:
-            # TODO: check if client already exist
-            self.clients.append(client)
-            self.save_clients_to_file()
+            # check if client already exist by name
+            if self.is_exist(client):
+                err_msg = "Client already exist"
+                print(err_msg)
+                raise RecordAlreadyExist(err_msg)
+            else:
+                self.clients.append(client)
+                self.save_clients_to_file()
+
