@@ -52,6 +52,11 @@ class Clients:
                 
         return is_exist
 
+    def get_password_hash_by_client_id(self, client_id):
+        for client in self.clients:
+            if client["client_id"] == client_id:
+                return client["password_hash"]
+
     def add_client(self, client):
         with self.lock:
             # check if client already exist by name

@@ -36,9 +36,9 @@ class Servers:
     def save_servers_to_file(self):
         with self.lock:
             try:
-                with open(self.file_path, 'w') as file:
+                with open(os.getcwd()+self.file_path, 'w') as file:
                     for server in self.servers:
-                        file.write(f"{server['ID']}:{server['Name']}:{server['AESKey']}\n")
+                        file.write(f"{server['server_id']}:{server['name']}:{server['aes_key']}\n")
             except IOError:
                 print(f"Error: Unable to save servers to file '{self.file_path}'")
 
@@ -50,6 +50,21 @@ class Servers:
                 break
 
         return is_exist
+
+    def get_all_servers(self):
+        servers_list = []
+        for server in self.servers:
+            servers_list += [{
+                "server_id": server["server_id"],
+                "name": server["name"]
+            }]
+
+        return servers_list
+
+    def get_aes_key_by_server_id(self, server_id):
+        for server in self.servers:
+            if server["server_id"] == server_id:
+                return server["aes_key"]
 
     def add_server(self, server):
         # check if client already exist by name

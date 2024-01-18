@@ -1,7 +1,9 @@
 import json
 import sys
 
+from Crypto.Cipher import AES
 from Crypto.Util import number
+from Crypto.Util.Padding import pad
 from Crypto.Util.number import getPrime
 from Crypto.Random import get_random_bytes
 from Crypto.Hash import SHA256
@@ -32,6 +34,12 @@ def hash_password(password):
     hashed_password = hasher.hexdigest()
 
     return hashed_password
+
+
+def encrypt_aes_cbc(key, data, iv=None):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ciphered_data = cipher.encrypt(pad(data, AES.block_size))
+    return cipher.iv, ciphered_data
 
 
 def add_payload_size_to_header(request):
@@ -72,6 +80,7 @@ def read_port_from_file(port_filename="port.info"):
 
     print(f"Using default port: {default_port}")
     return default_port
+
 
 def pack_and_send(connection, response):
     decorated_response = add_payload_size_to_header(response)

@@ -41,8 +41,7 @@ def send_request(ip, port, header, payload):
     try:
         client_socket.connect((ip, port))
     except ConnectionRefusedError:
-        print("Error: Connection refused. Ensure that the server is running.")
-        return
+        raise Exception("Error: Connection refused. Ensure that the server is running.")
 
     try:
         # Send message to server
@@ -60,11 +59,9 @@ def send_request(ip, port, header, payload):
         return msg_data
 
     except json.JSONDecodeError:
-        print("Error: Response from server invalid JSON format")
+        raise Exception("Error: Response from server invalid JSON format")
     except Exception as e:
-        print(f"Error during communication: {e}")
+        raise Exception(f"Error during communication: {e}")
 
     finally:
         client_socket.close()
-
-    return {}

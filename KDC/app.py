@@ -3,9 +3,7 @@ import socket
 import sys
 import threading
 
-# from KDC.db.models.Clients import Clients
-# from KDC.db.models.Servers import Servers
-from utils import read_port_from_file
+from utils import read_port_from_file, pack_and_send
 from routes import routes
 from config import __api_version__
 import KDC.db.models as models
@@ -30,14 +28,11 @@ def handle_request(connection):
         err_response = {
             'header': {
                 'version': __api_version__,
-                'code': 1609,
-                'payload_size': 0
-            }, 'payload': {
-                'error_msg': 'General server error.'
+                'code': 1609
             }
         }
-        err_response_json = json.dumps(err_response).encode()
-        connection.sendall(err_response_json)
+
+        pack_and_send(connection, err_response)
 
     finally:
         connection.close()
@@ -80,7 +75,7 @@ def run_server():
     server_socket.bind(('localhost', port))
     server_socket.listen(10)  # Allow up to 10 queued connections
 
-    print(f"Server is listening on port {port}")
+    print(f"KDC server is listening on port {port}")
 
     try:
         # load database models

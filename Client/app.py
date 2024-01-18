@@ -30,34 +30,39 @@ def register_new_user():
         'password': user_pass
     }
 
-    response = send_request(__auth_server_ip__, __auth_server_port__, req_header, req_payload)
-    print("response: ", response)  # FIXME: TESTING
+    try:
+        response = send_request(__auth_server_ip__, __auth_server_port__, req_header, req_payload)
+        print("response: ", response)  # FIXME: TESTING
 
-    response_code = response["header"]["code"]
-    if response_code == 1600:  # registration success
-        print("[1600] Registration success")
-        # save user to file
-        with open(__user_creds_filename__, "w") as file:
-            client_id = response["payload"]["client_id"]
-            file.write(f"{__auth_server_ip__}:{__auth_server_port__}\n{user_name}\n{client_id}")
+        response_code = response["header"]["code"]
+        if response_code == 1600:  # registration success
+            print("[1600] Registration success")
+            # save user to file
+            with open(__user_creds_filename__, "w") as file:
+                client_id = response["payload"]["client_id"]
+                file.write(f"{__auth_server_ip__}:{__auth_server_port__}\n{user_name}\n{client_id}")
+            return True
 
-    elif response_code == 1601:  # registration failed
-        print("[1601] Registration failed")
+        elif response_code == 1601:  # registration failed
+            print("[1601] Registration failed")
 
-    else:  # unknown response
-        print("Unknown response from server: ", response)
+        else:  # unknown response
+            print("Unknown response from server: ", response)
+    except Exception as e:
+        print(e)
+
+    return False
 
 
 def main():
 
     user = read_user_from_file(__user_creds_filename__)
-
     if user:  # me.info file exists
         # TODO: request to server - connect again
         print(user)
-
+        user_exist = True
     else:  # user file not found
-        register_new_user()
+        user_exist = register_new_user()
 
 
 if __name__ == "__main__":
