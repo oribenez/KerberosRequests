@@ -1,68 +1,83 @@
+from ServerErrorException import ServerErrorException
+from config import __user_creds_filename__
+from utils import read_user_from_file, color, GREEN, bold
+from api import register_new_user, get_servers_list, send_message
 
 
-from utils import read_user_from_file, send_request
+def get_client_info_gui():
+    client = read_user_from_file(__user_creds_filename__)
+    if not client:  # client file not found
 
-__user_creds_filename__ = 'me.info'
-__auth_server_ip__ = '127.0.0.1'
-__auth_server_port__ = 8000
+        # ask from client to sign up
+        while True:
+            user_name = input("Please type your name: ") or 'Michael Jackson'  # FIXME: for testing only
+
+            if len(user_name) > 100:
+                print("Username must be max 100 characters. ")
+            else:
+                break
+
+        user_pass = input("Please type password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
+
+        # register new client at KDC server
+        client = register_new_user(user_name, user_pass)
+
+    return client
 
 
-def register_new_user():
-    # ask from user the username and password to register
+def choose_server_gui(client):
+    # get servers list from KDC
+    servers_list = get_servers_list(client)
+
+    print(color("\nServers List:\n‾‾‾‾‾‾‾‾‾‾‾‾‾", GREEN))
+
+    for i, server in enumerate(servers_list):
+        print(f"{i + 1}) {bold('Server Name:')} {server['name']}, {bold('Server ID:')} {server['server_id']}")
+
     while True:
-        user_name = input("Please type your name: ") or 'Michael Jackson'  # FIXME: for testing only
+        server_choice_num = -1
+        try:
+            server_choice_num = int(input("Type server number (1,2,... ): "))
+        except Exception as e:
+            print("Invalid server number. Please try again...")
 
-        if len(user_name) > 100:
-            print("Username must be max 100 characters. ")
+        server_index = server_choice_num - 1
+        if 0 <= server_index < len(servers_list):
+            break  # correct server index
         else:
-            break
+            print("Invalid server number. Please try again...")
 
-    user_pass = input("Please type password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
+    selected_server = servers_list[server_index]
+    return selected_server
 
-    # request to server - new connection
-    req_header = {
-        'client_id': 'undefined',
-        'version': 24,
-        'code': 1025
-    }
-    req_payload = {
-        'name': user_name,
-        'password': user_pass
-    }
 
-    try:
-        response = send_request(__auth_server_ip__, __auth_server_port__, req_header, req_payload)
-        print("response: ", response)  # FIXME: TESTING
+def send_message_gui(client, server):
+    print(f"Type the message you want to send \"{server['name']}\" [end-to-end encrypted]\n")
+    message = input(color("Message:\n‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
 
-        response_code = response["header"]["code"]
-        if response_code == 1600:  # registration success
-            print("[1600] Registration success")
-            # save user to file
-            with open(__user_creds_filename__, "w") as file:
-                client_id = response["payload"]["client_id"]
-                file.write(f"{__auth_server_ip__}:{__auth_server_port__}\n{user_name}\n{client_id}")
-            return True
+    client_id = client["client_id"]
+    client_password = input("Type your password: ")
+    server_id = server["server_id"]
 
-        elif response_code == 1601:  # registration failed
-            print("[1601] Registration failed")
-
-        else:  # unknown response
-            print("Unknown response from server: ", response)
-    except Exception as e:
-        print(e)
-
-    return False
+    # send the message to the Messages server
+    send_message(client_id, client_password, server_id, message)
 
 
 def main():
 
-    user = read_user_from_file(__user_creds_filename__)
-    if user:  # me.info file exists
-        # TODO: request to server - connect again
-        print(user)
-        user_exist = True
-    else:  # user file not found
-        user_exist = register_new_user()
+    # GUI
+    try:
+        # load client from file, if not exist, register new client
+        client = get_client_info_gui()
+
+        # ask client to choose a server to send a message.
+        selected_server = choose_server_gui(client)
+
+        # ask client to write a message to send to the selected server.
+        send_message_gui(client, selected_server)
+
+    except ServerErrorException as se:
+        print(se)
 
 
 if __name__ == "__main__":

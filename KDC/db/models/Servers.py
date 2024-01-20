@@ -21,11 +21,11 @@ class Servers:
                 with open(os.getcwd()+self.file_path, 'r') as file:
                     for line in file:
                         server_data = line.strip().split(':')
-                        if len(server_data) == 4:
+                        if len(server_data) == 3:
                             server = {
-                                'ID': server_data[0],
-                                'Name': server_data[1],
-                                'AESKey': server_data[2],
+                                'server_id': server_data[0],
+                                'name': server_data[1],
+                                'aes_key': server_data[2],
                             }
                             servers_temp.append(server)
 

@@ -1,7 +1,12 @@
+import base64
+import binascii
+import hashlib
+import hmac
 import json
 import sys
 
 from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util import number
 from Crypto.Util.Padding import pad
 from Crypto.Util.number import getPrime
@@ -23,23 +28,34 @@ def generate_random_uuid():
     return uuid_without_dashes
 
 
-def hash_password(password):
-    # Create a new SHA-256 hash object
-    hasher = SHA256.new()
-
-    # Update the hash object with the password
-    hasher.update(password.encode('utf-8'))
-
-    # Get the hexadecimal representation of the hash
-    hashed_password = hasher.hexdigest()
-
-    return hashed_password
+def hash_password_hex(password, salt, key_length=32, iterations=1000000):
+    hashed_password = PBKDF2(password, salt, dkLen=key_length, count=iterations)
+    hashed_password_hex = binascii.hexlify(hashed_password).decode('utf-8')
+    return hashed_password_hex
 
 
-def encrypt_aes_cbc(key, data, iv=None):
-    cipher = AES.new(key, AES.MODE_CBC, iv)
+def encrypt_aes_cbc(key, salt, data, iv=None):
+    print("encrypt_aes_cbc(key, salt, data, iv=None):")
+
+    if iv is None:
+        iv = get_random_bytes(16)
+
+    bf_key = PBKDF2(key, salt, dkLen=32, count=1000000)
+    print(f"0: {key, data, iv}")
+    cipher = AES.new(bf_key, AES.MODE_CBC, iv)
+    print("1")
     ciphered_data = cipher.encrypt(pad(data, AES.block_size))
+    print("2")
+
     return cipher.iv, ciphered_data
+
+
+def pack_key_base64(key):
+    return base64.b64encode(key).decode('utf-8')
+
+
+def unpack_key_base64(key):
+    return base64.b64decode(key)
 
 
 def add_payload_size_to_header(request):
@@ -57,6 +73,12 @@ def add_payload_size_to_header(request):
         new_request = new_request | {"payload": request["payload"]}
 
     return new_request
+
+
+def pack_and_send(connection, response):
+    decorated_response = add_payload_size_to_header(response)
+    json_response = json.dumps(decorated_response).encode()
+    connection.sendall(json_response)
 
 
 def read_port_from_file(port_filename="port.info"):
@@ -80,9 +102,3 @@ def read_port_from_file(port_filename="port.info"):
 
     print(f"Using default port: {default_port}")
     return default_port
-
-
-def pack_and_send(connection, response):
-    decorated_response = add_payload_size_to_header(response)
-    json_response = json.dumps(decorated_response).encode()
-    connection.sendall(json_response)

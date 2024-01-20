@@ -10,6 +10,7 @@ import KDC.db.models as models
 
 
 def handle_request(connection):
+    controller = 'undefined'
     try:
         # Receive request from client
         msg_data = receive_buffered_request(connection)
@@ -22,6 +23,7 @@ def handle_request(connection):
         controller(connection, msg_data)
 
     except Exception as e:
+        print(f"Exception in function: {controller.__name__ or controller}")
         print(f"Error during communication: {e}")
 
         # Response to client in case of error
@@ -52,7 +54,7 @@ def receive_buffered_request(connection, timeout=10):
 
             data += chunk
 
-            if b'"EOF": 0}' in chunk:  # signature of End Of File - EOF
+            if b'"EOF": 0}' or b"'EOF': 0}" in chunk:  # signature of End Of File - EOF
                 break
 
         msg_receive = data.decode()
@@ -63,7 +65,7 @@ def receive_buffered_request(connection, timeout=10):
     except json.JSONDecodeError as e:
         print("Error: Invalid JSON format")
     except Exception as e:
-        print("Error")
+        print("Error: ", e)
 
     return None
 

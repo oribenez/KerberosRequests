@@ -16,6 +16,7 @@ from config import (__api_version__,
 
 
 def handle_request(connection):
+    controller = 'undefined'
     try:
         # Receive request from client
         msg_data = receive_buffered_request(connection)
@@ -28,6 +29,7 @@ def handle_request(connection):
         controller(connection, msg_data)
 
     except Exception as e:
+        print(f"Exception in function: {controller.__name__ or controller}")
         print(f"Error during communication: {e}")
 
         # Response to client in case of error
