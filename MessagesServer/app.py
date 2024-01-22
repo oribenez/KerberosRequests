@@ -1,18 +1,18 @@
-import base64
 import json
 import socket
 import sys
 import threading
 
-from Crypto.Random import get_random_bytes
-
+import data
+from api import register_new_server
+from lib.ServerException import ServerException
 from routes import routes
-from utils import read_port_from_file, pack_and_send, read_server_creds_from_file, send_request
+from utils import read_server_creds_from_file
+from lib.utils import pack_and_send
 from config import (__api_version__,
                     __server_creds_filename__,
-                    __kdc_server_ip__,
-                    __kdc_server_port__,
-                    __msg_server_port__)
+                    __msg_server_port__,
+                    __msg_server_ip__)
 
 
 def handle_request(connection):
@@ -60,7 +60,7 @@ def receive_buffered_request(connection, timeout=10):
 
             data += chunk
 
-            if b'"EOF": 0}' in chunk:  # signature of End Of File - EOF
+            if b'"EOF": 0}' or b"'EOF': 0}" in chunk:  # signature of End Of File - EOF
                 break
 
         msg_receive = data.decode()
@@ -71,19 +71,22 @@ def receive_buffered_request(connection, timeout=10):
     except json.JSONDecodeError as e:
         print("Error: Invalid JSON format")
     except Exception as e:
-        print("Error")
+        print("Error: ", e)
 
     return None
 
 
-def run_server():
+def run_server(server_info):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(('localhost', __msg_server_port__))
+    server_socket.bind((__msg_server_ip__, __msg_server_port__))
     server_socket.listen(10)  # Allow up to 10 queued connections
 
     print(f"Messages server is listening on port {__msg_server_port__}")
 
     try:
+        # load database
+        data.load_db(server_info_init=server_info)
+
         while True:
             connection, address = server_socket.accept()
             print(f"Connection established from {address}")
@@ -98,62 +101,35 @@ def run_server():
         sys.exit()
 
 
-def register_new_server():
-    # ask from user the username and password to register
-    while True:
-        server_name = input("Please type server name: ") or 'Printer'  # FIXME: for testing only
+def get_server_info_gui():
+    server = read_server_creds_from_file(__server_creds_filename__)
+    if not server:  # client file not found
 
-        if len(server_name) > 100:
-            print("Server name must be max 100 characters. ")
-        else:
-            break
+        # ask from user the server name to register
+        while True:
+            server_name = input("Please type server name: ") or 'Printer'  # FIXME: for testing only
 
-    # Generate a random 256-bit (32-byte) AES key for server and client
-    aes_key = get_random_bytes(32)
-    base64_aes_key = base64.b64encode(aes_key).decode('utf-8')
+            if len(server_name) > 100:
+                print("Server name must be max 100 characters. ")
+            else:
+                break
 
-    # request to server - new connection
-    req_header = {
-        'client_id': 'undefined',
-        'version': 24,
-        'code': 1027
-    }
-    req_payload = {
-        'name': server_name,
-        'aes_key': base64_aes_key
-    }
+        # register new client at KDC server
+        server = register_new_server(server_name)
 
+    return server
+
+
+def main():
     try:
-        response = send_request(__kdc_server_ip__, __kdc_server_port__, req_header, req_payload)
-        print("response: ", response)  # FIXME: TESTING
+        # load server info from file, if not exist, register new server
+        server_info = get_server_info_gui()
 
-        response_code = response["header"]["code"]
-        if response_code == 1600:  # registration success
-            print("[1600] Registration success")
-            # save user to file
-            with open(__server_creds_filename__, "w") as file:
-                server_id = response["payload"]["server_id"]
-                file.write(f"{__msg_server_port__}\n{server_name}\n{server_id}\n{base64_aes_key}")
-
-            return True
-        elif response_code == 1601:  # registration failed
-            print("[1601] Registration failed")
-        else:  # unknown response
-            print("Unknown response from server: ", response)
-
-    except Exception as e:
-        print(e)
-
-    return False
+        if server_info:
+            run_server(server_info)
+    except ServerException as se:
+        print(se)
 
 
 if __name__ == "__main__":
-    creds = read_server_creds_from_file(__server_creds_filename__)
-    if creds:  # file found
-        server_exist = True
-    else:  # file not found
-        # register new server
-        server_exist = register_new_server()
-
-    if server_exist:
-        run_server()
+    main()

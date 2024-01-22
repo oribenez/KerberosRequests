@@ -2,6 +2,7 @@ import os
 import threading
 
 from KDC.db.models.RecordAlreadyExist import RecordAlreadyExist
+from lib.utils import pack_key_hex, pack_key_base64, unpack_key_hex, unpack_key_base64
 
 
 class Servers:
@@ -23,9 +24,9 @@ class Servers:
                         server_data = line.strip().split(':')
                         if len(server_data) == 3:
                             server = {
-                                'server_id': server_data[0],
+                                'server_id': unpack_key_hex(server_data[0].encode('utf-8')).decode('utf-8'),
                                 'name': server_data[1],
-                                'aes_key': server_data[2],
+                                'aes_key': unpack_key_base64(server_data[2].encode('utf-8')),
                             }
                             servers_temp.append(server)
 
@@ -38,9 +39,16 @@ class Servers:
             try:
                 with open(os.getcwd()+self.file_path, 'w') as file:
                     for server in self.servers:
-                        file.write(f"{server['server_id']}:{server['name']}:{server['aes_key']}\n")
+                        server_id_hex = pack_key_hex(server['server_id'].encode('utf-8'))
+                        server_name = server['name']
+                        server_aes_key_base64 = pack_key_base64(server['aes_key'])
+
+                        file.write(f"{server_id_hex}:{server_name}:{server_aes_key_base64}\n")
+
             except IOError:
                 print(f"Error: Unable to save servers to file '{self.file_path}'")
+            except Exception as e:
+                print(f"Error: ", e)
 
     def is_exist(self, other_server):
         is_exist = False

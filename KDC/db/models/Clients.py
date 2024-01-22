@@ -2,6 +2,7 @@ import os
 import threading
 
 from KDC.db.models.RecordAlreadyExist import RecordAlreadyExist
+from lib.utils import pack_key_hex, pack_key_base64, unpack_key_hex, unpack_key_base64
 
 
 class Clients:
@@ -24,9 +25,9 @@ class Clients:
                         client_data = line.strip().split(':')
                         if len(client_data) == 4:
                             client = {
-                                'client_id': client_data[0],
+                                'client_id': unpack_key_hex(client_data[0].encode('utf-8')).decode('utf-8'),
                                 'name': client_data[1],
-                                'password_hash': client_data[2],
+                                'password_hash':  unpack_key_base64(client_data[2].encode('utf-8')),
                                 'last_seen': client_data[3]
                             }
                             clients_temp.append(client)
@@ -39,9 +40,16 @@ class Clients:
         try:
             with open(os.getcwd()+self.file_path, 'w') as file:
                 for client in self.clients:
-                    file.write(f"{client['client_id']}:{client['name']}:{client['password_hash']}:{client['last_seen']}\n")
+                    client_id_hex = pack_key_hex(client['client_id'].encode('utf-8'))
+                    client_name = client['name']
+                    password_hash_base64 = pack_key_base64(client['password_hash'].encode('utf-8'))
+                    last_seen = client['last_seen']
+
+                    file.write(f"{client_id_hex}:{client_name}:{password_hash_base64}:{last_seen}\n")
         except IOError:
             print(f"Error: Unable to save clients to file '{self.file_path}'")
+        except Exception as e:
+            print(f"Error: ", e)
 
     def is_exist(self, other_client):
         is_exist = False

@@ -3,7 +3,8 @@ import socket
 import sys
 import threading
 
-from utils import read_port_from_file, pack_and_send
+from lib.utils import pack_and_send
+from utils import read_port_from_file
 from routes import routes
 from config import __api_version__
 import KDC.db.models as models

@@ -1,6 +1,7 @@
-from ServerErrorException import ServerErrorException
+from lib.ServerException import ServerException
 from config import __user_creds_filename__
-from utils import read_user_from_file, color, GREEN, bold
+from lib.utils import color, GREEN, bold
+from utils import read_user_from_file
 from api import register_new_user, get_servers_list, send_message
 
 
@@ -56,7 +57,7 @@ def send_message_gui(client, server):
     message = input(color("Message:\n‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
 
     client_id = client["client_id"]
-    client_password = input("Type your password: ")
+    client_password = input("Type your password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
     server_id = server["server_id"]
 
     # send the message to the Messages server
@@ -76,7 +77,7 @@ def main():
         # ask client to write a message to send to the selected server.
         send_message_gui(client, selected_server)
 
-    except ServerErrorException as se:
+    except ServerException as se:
         print(se)
 
 

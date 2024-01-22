@@ -6,9 +6,11 @@ from datetime import datetime, timedelta
 
 from Crypto.Random import get_random_bytes
 
-from Client.config import salt
+from lib.config import salt
 from config import __api_version__
-from utils import generate_random_uuid, hash_password_hex, pack_and_send, encrypt_aes_cbc, pack_key_base64
+from lib.utils import pack_key_hex, hash_password, pack_and_send, encrypt_aes_cbc, pack_key_base64, unpack_key_hex, \
+    unpack_key_base64
+from utils import generate_random_uuid
 import KDC.db.models as models
 
 
@@ -16,12 +18,12 @@ def register_client(connection, req):
     try:
         # add client to clients list
         client_id = generate_random_uuid()
-        password_hash = hash_password_hex(req["payload"]["password"], salt)
+        password_hash_hex = pack_key_hex(hash_password(req["payload"]["password"], salt))
         timestamp = time.time()
         client = {
             "client_id": client_id,
             "name": req["payload"]["name"],
-            "password_hash": password_hash,
+            "password_hash": password_hash_hex,
             "last_seen": timestamp
         }
 
@@ -56,10 +58,11 @@ def register_server(connection, req):
     try:
         # add client to clients list
         server_id = generate_random_uuid()
+
         server = {
             "server_id": server_id,
             "name": req["payload"]["name"],
-            "aes_key": req["payload"]["aes_key"],
+            "aes_key": unpack_key_base64(req["payload"]["aes_key"]),
         }
 
         models.db["servers"].add_server(server)
@@ -112,25 +115,28 @@ def get_symmetric_key(connection, req):
 
     # Prepare response to client
     print("sav1")
-    sc_aes_key = models.db["servers"].get_aes_key_by_server_id(server_id)  # sc - AES key belongs to both the server and client
-    # FIXME: BREAKING CHANGES: need to fix all AES keys
-    # client_password_hash = a hash of the client password that he used at registration
-    client_password_hash = models.db["clients"].get_password_hash_by_client_id(client_id)
 
-    # Encrypted [Server-Client key] with [Client key]
-    iv__c, encrypted_sc_aes_key__with_c = encrypt_aes_cbc(key=client_password_hash, salt=salt, data=sc_aes_key)
-    print("sav1_2")
-    print("sav2")
-    # Encrypt [aes_key__sc] with the key [server_aes_key]
-    # server_aes_key = an aes key of which belongs to the server
+    # Generate AES key SHA-256
+    session_aes_key = get_random_bytes(32)
+
+    # client_password_hash - a hash of the client password that he used at registration
+    client_password_hash = unpack_key_hex(models.db["clients"].get_password_hash_by_client_id(client_id))
+
+    # Encrypted [Session key] with [Client key]
+    iv__c, encrypted_session_aes_key__with_c = encrypt_aes_cbc(key=client_password_hash, data=session_aes_key)
+    print('server_id: ', server_id)
+    # server AES key generated at server registration
     server_aes_key = models.db["servers"].get_aes_key_by_server_id(server_id)
-    iv__s, encrypted_aes_key__s = encrypt_aes_cbc(key=server_aes_key, salt=salt, data=aes_key__sc)
+    print('server_aes_key: ', server_aes_key)
+    # Encrypted [Session key] with [Server key]
+    ticket_iv, encrypted_session_aes_key__with_s = encrypt_aes_cbc(key=server_aes_key, data=session_aes_key)
+
     print("sav3")
     timestamp = time.time()
     expiration_time = str(int(time.time() + 5 * 60)).encode('utf-8')  # Now + 5 minutes (seconds) & Pack the timestamp into bytes
     print("sav4")
     # Encrypt [expiration_time] with the key [server_aes_key] using the *same* IV as before
-    _, encrypted_expiration_time__s = encrypt_aes_cbc(key=server_aes_key, salt=salt, data=expiration_time, iv=iv__s)
+    _, encrypted_expiration_time__with_s = encrypt_aes_cbc(key=server_aes_key, data=expiration_time, iv=ticket_iv)
     print("sav5")
     response = {
         'header': {
@@ -140,16 +146,16 @@ def get_symmetric_key(connection, req):
             'client_id': client_id,
             'symmetric_key': {
                 'iv': pack_key_base64(iv__c),
-                'aes_key': pack_key_base64(encrypted_aes_key__c)
+                'aes_key': pack_key_base64(encrypted_session_aes_key__with_c)
             },
             'ticket': {
                 'version': __api_version__,
                 'client_id': client_id,
                 'server_id': server_id,
                 'timestamp': timestamp,
-                'ticket_iv': pack_key_base64(iv__s),
-                'aes_key': pack_key_base64(encrypted_aes_key__s),
-                'expiration_time': pack_key_base64(encrypted_expiration_time__s)
+                'ticket_iv': pack_key_base64(ticket_iv),
+                'aes_key': pack_key_base64(encrypted_session_aes_key__with_s),
+                'expiration_time': pack_key_base64(encrypted_expiration_time__with_s)
             }
         }
     }

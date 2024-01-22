@@ -1,29 +1,6 @@
-import json
-import socket
-import sys
+from datetime import datetime
 
-
-def add_payload_size_to_header(request):
-    payload = request.get("payload", {})
-    payload_size = 0  # size in bytes
-    if payload != {}:
-        payload_size = sys.getsizeof(payload)
-
-    new_request = {
-        "header": request["header"] | {"payload_size": payload_size},
-    }
-
-    # add payload only if exist
-    if payload_size != 0:
-        new_request = new_request | {"payload": request["payload"]}
-
-    return new_request
-
-
-def pack_and_send(connection, response):
-    decorated_response = add_payload_size_to_header(response)
-    json_response = json.dumps(decorated_response).encode()
-    connection.sendall(json_response)
+from lib.utils import unpack_key_hex, unpack_key_base64
 
 
 def read_port_from_file(port_filename="port.info"):
@@ -49,35 +26,16 @@ def read_port_from_file(port_filename="port.info"):
     return default_port
 
 
-def send_request(ip, port, header, payload):
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        server_socket.connect((ip, port))
-    except ConnectionRefusedError:
-        raise Exception("Error: Connection refused. Ensure that the server is running.")
+def are_timestamps_close(timestamp1, timestamp2, threshold_seconds=1):
+    # Convert timestamps to datetime objects
+    dt1 = datetime.fromtimestamp(timestamp1)
+    dt2 = datetime.fromtimestamp(timestamp2)
 
-    try:
-        # Send message to server
-        # {'EOF': 0} is a sign that this is the end of the request data for the buffer to receive
-        msg_data = {'header': header, 'payload': payload} | {'EOF': 0}
+    # Calculate the absolute difference in seconds
+    time_difference = abs((dt2 - dt1).total_seconds())
 
-        # Convert the dictionary to a JSON string and then send to server
-        json_data = json.dumps(msg_data)
-        server_socket.sendall(json_data.encode())
-
-        # Receive response from server and parse the JSON-formatted message
-        msg_receive = server_socket.recv(1024)
-        msg_data = json.loads(msg_receive.decode())
-
-        return msg_data
-
-    except json.JSONDecodeError:
-        raise Exception("Error: Response from server invalid JSON format")
-    except Exception as e:
-        raise Exception(f"Error during communication: {e}")
-
-    finally:
-        server_socket.close()
+    # Check if the difference is within the threshold
+    return time_difference <= threshold_seconds
 
 
 def read_server_creds_from_file(filename):
@@ -86,18 +44,19 @@ def read_server_creds_from_file(filename):
             lines = file.readlines()
 
             # Extracting information
-            kdc_port = lines[0].strip()
+            port = lines[0].strip()
             name = lines[1].strip()
-            unique_ascii_key = lines[2].strip()
-            symmetric_key = lines[3].strip()
+            server_id = unpack_key_hex(lines[2].strip().encode('utf-8')).decode('utf-8')
+            aes_key = unpack_key_base64(lines[3].strip().encode('utf-8'))
 
             # Validate
-            if not kdc_port.isdigit():
+            if not port.isdigit():
                 raise ValueError("Invalid port number.")
 
-            return {
-                'port': kdc_port, 'name': name, 'unique_ascii_key': unique_ascii_key, 'symmetric_key': symmetric_key
+            server_info = {
+                'port': port, 'name': name, 'server_id': server_id, 'aes_key': aes_key
             }
+            return server_info
 
     except FileNotFoundError:
         print(f"Info: File '{filename}' not found.")

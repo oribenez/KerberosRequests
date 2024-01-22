@@ -1,4 +1,4 @@
-from MessagesServer.utils import read_port_from_file
+from utils import read_port_from_file
 
 __api_version__ = 24
 __server_creds_filename__ = 'msg.info'
