@@ -12,7 +12,6 @@ from config import (__api_version__,
 def register_new_server(server_name):
     # Generate a random 256-bit (32-byte) AES key for server and client
     aes_key = get_random_bytes(32)
-    aes_key_base64 = pack_key_base64(aes_key)
 
     # request to server - new connection
     request = {
@@ -22,19 +21,20 @@ def register_new_server(server_name):
             'code': 1025
         }, 'payload': {
             'name': server_name,
-            'aes_key': aes_key_base64
+            'aes_key': aes_key
         }
     }
 
     response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
     response_code = response["header"]["code"]
-
-    if response_code == 1600:  # registration success
-        print("[1600] Registration success")
+    print('response:', response)
+    if response_code == 16000:  # registration success
+        print("[16000] Registration success")
         # save user to file
         with open(__server_creds_filename__, "w") as file:
             server_id = response["payload"]["server_id"]
             server_id_hex = pack_key_hex(server_id.encode('utf-8'))
+            aes_key_base64 = pack_key_base64(aes_key)
 
             file.write(f"{__msg_server_port__}\n{server_name}\n{server_id_hex}\n{aes_key_base64}")
 

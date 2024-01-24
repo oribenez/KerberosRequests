@@ -8,25 +8,28 @@ from Crypto.Random import get_random_bytes
 
 from lib.config import salt
 from config import __api_version__
-from lib.utils import pack_key_hex, hash_password, pack_and_send, encrypt_aes_cbc, pack_key_base64, unpack_key_hex, \
-    unpack_key_base64
+from lib.utils import pack_key_hex, hash_password, encrypt_aes_cbc, pack_key_base64, unpack_key_hex, unpack_key_base64, \
+    send, RESPONSE, color, RED, decrypt_aes_cbc
 from utils import generate_random_uuid
 import KDC.db.models as models
 
 
 def register_client(connection, req):
     try:
+        print('req: ', req)
         # add client to clients list
         client_id = generate_random_uuid()
-        password_hash_hex = pack_key_hex(hash_password(req["payload"]["password"], salt))
+        print("#####$#$#$#client_id: ", client_id)
+        name = req['payload']['name']
+        password_hash = hash_password(req['payload']['password'], salt)
         timestamp = time.time()
         client = {
             "client_id": client_id,
-            "name": req["payload"]["name"],
-            "password_hash": password_hash_hex,
+            "name": name,
+            "password_hash": password_hash,
             "last_seen": timestamp
         }
-
+        print('client: ', client)
         models.db["clients"].add_client(client)
 
         # response to client
@@ -38,6 +41,7 @@ def register_client(connection, req):
                 'client_id': client_id
             }
         }
+        print('[SUCCESS] register_client()')
 
     except Exception as e:
         print(f"Exception in function: {inspect.currentframe().f_code.co_name}")
@@ -50,7 +54,7 @@ def register_client(connection, req):
             }
         }
 
-    pack_and_send(connection, response)
+    send(connection, RESPONSE, response)
 
 
 def register_server(connection, req):
@@ -62,7 +66,7 @@ def register_server(connection, req):
         server = {
             "server_id": server_id,
             "name": req["payload"]["name"],
-            "aes_key": unpack_key_base64(req["payload"]["aes_key"]),
+            "aes_key": req["payload"]["aes_key"],
         }
 
         models.db["servers"].add_server(server)
@@ -71,7 +75,7 @@ def register_server(connection, req):
         response = {
             'header': {
                 'version': __api_version__,
-                'code': 1600,
+                'code': 16000,
             }, 'payload': {
                 'server_id': server_id
             }
@@ -88,7 +92,7 @@ def register_server(connection, req):
             }
         }
 
-    pack_and_send(connection, response)
+    send(connection, RESPONSE, response)
 
 
 def get_servers_list(connection, req):
@@ -99,11 +103,13 @@ def get_servers_list(connection, req):
         'header': {
             'version': __api_version__,
             'code': 1602,
-        }, 'payload': {
-            'servers_list': servers_list
-        }
+        }, 'payload': {}
     }
-    pack_and_send(connection, response)
+    for ind, server in enumerate(servers_list):
+        response['payload']['server_id__' + str(ind)] = server['server_id']
+        response['payload']['server_name__' + str(ind)] = server['name']
+    print("Response: ", response)
+    send(connection, RESPONSE, response)
 
 
 def get_symmetric_key(connection, req):
@@ -112,15 +118,16 @@ def get_symmetric_key(connection, req):
     client_id = req["header"]["client_id"]
     server_id = req["payload"]["server_id"]
     nonce = req["payload"]["nonce"]  # TODO: handle nonce
-
-    # Prepare response to client
+    print('header: ', req["header"])
+    # # Prepare response to client
     print("sav1")
 
     # Generate AES key SHA-256
     session_aes_key = get_random_bytes(32)
 
     # client_password_hash - a hash of the client password that he used at registration
-    client_password_hash = unpack_key_hex(models.db["clients"].get_password_hash_by_client_id(client_id))
+    client_password_hash = models.db["clients"].get_password_hash_by_client_id(client_id)
+    print('client_password_hash: ', client_password_hash)
 
     # Encrypted [Session key] with [Client key]
     iv__c, encrypted_session_aes_key__with_c = encrypt_aes_cbc(key=client_password_hash, data=session_aes_key)
@@ -145,21 +152,30 @@ def get_symmetric_key(connection, req):
         }, 'payload': {
             'client_id': client_id,
             'symmetric_key': {
-                'iv': pack_key_base64(iv__c),
-                'aes_key': pack_key_base64(encrypted_session_aes_key__with_c)
-            },
-            'ticket': {
+                'symm_iv': iv__c,
+                'aes_key': encrypted_session_aes_key__with_c,
+            }, 'ticket': {
                 'version': __api_version__,
                 'client_id': client_id,
                 'server_id': server_id,
                 'timestamp': timestamp,
-                'ticket_iv': pack_key_base64(ticket_iv),
-                'aes_key': pack_key_base64(encrypted_session_aes_key__with_s),
-                'expiration_time': pack_key_base64(encrypted_expiration_time__with_s)
+                'ticket_iv': ticket_iv,
+                'aes_key': encrypted_session_aes_key__with_s,
+                'expiration_time': encrypted_expiration_time__with_s
             }
         }
     }
-    pack_and_send(connection, response)
+    print(color('get_symmetric_key', RED))
+    print('symm__iv: ', iv__c)
+    print('symm__aes_key: ', encrypted_session_aes_key__with_c)
+    print('ticket__iv: ', ticket_iv)
+    print('ticket__aes_key: ', encrypted_session_aes_key__with_s)
+    print(f'server_aes_key({len(server_aes_key)}): ', server_aes_key)
+    temp_delete_it = decrypt_aes_cbc(server_aes_key, ticket_iv, encrypted_session_aes_key__with_s)
+    print(color(f'decrypted_aes:{temp_delete_it}', RED))
+    print(f'ticket__expiration_time ({len(encrypted_expiration_time__with_s)}): ', encrypted_expiration_time__with_s)
+
+    send(connection, RESPONSE, response)
 
 
 def not_found_controller(connection, req):

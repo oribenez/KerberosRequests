@@ -1,9 +1,9 @@
-import json
 import socket
 import sys
 import threading
 
-from lib.utils import pack_and_send
+from lib.config import package_dict
+from lib.utils import receive_data, unpack_data, REQUEST, send, RESPONSE
 from utils import read_port_from_file
 from routes import routes
 from config import __api_version__
@@ -14,14 +14,13 @@ def handle_request(connection):
     controller = 'undefined'
     try:
         # Receive request from client
-        msg_data = receive_buffered_request(connection)
+        data_receive = receive_data(connection)
+        req = unpack_data(package_dict, REQUEST, data_receive)
 
-        req_header = msg_data['header'] or {}
-        # req_payload = msg_data.get('payload', '')
-        req_code = str(req_header['code']) or '0'
+        req_code = str(req['header']['code'])
 
         controller = routes.get(req_code, '0')  # 0 means, not found
-        controller(connection, msg_data)
+        controller(connection, req)
 
     except Exception as e:
         print(f"Exception in function: {controller.__name__ or controller}")
@@ -34,41 +33,10 @@ def handle_request(connection):
                 'code': 1609
             }
         }
-
-        pack_and_send(connection, err_response)
+        send(connection, RESPONSE, err_response)
 
     finally:
         connection.close()
-
-
-def receive_buffered_request(connection, timeout=10):
-    connection.settimeout(timeout)  # Set a timeout for this connection
-
-    try:
-        data = b''
-
-        while True:
-            chunk = connection.recv(1024)
-            if not chunk:
-                # Connection closed by the client
-                break
-
-            data += chunk
-
-            if b'"EOF": 0}' or b"'EOF': 0}" in chunk:  # signature of End Of File - EOF
-                break
-
-        msg_receive = data.decode()
-        msg_data = json.loads(msg_receive)
-
-        return msg_data
-
-    except json.JSONDecodeError as e:
-        print("Error: Invalid JSON format")
-    except Exception as e:
-        print("Error: ", e)
-
-    return None
 
 
 def run_server():
