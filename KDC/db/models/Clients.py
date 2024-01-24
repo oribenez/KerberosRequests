@@ -42,7 +42,7 @@ class Clients:
                 for client in self.clients:
                     client_id_hex = pack_key_hex(client['client_id'].encode('utf-8'))
                     client_name = client['name']
-                    password_hash_base64 = pack_key_base64(client['password_hash'].encode('utf-8'))
+                    password_hash_base64 = pack_key_base64(client['password_hash'])
                     last_seen = client['last_seen']
 
                     file.write(f"{client_id_hex}:{client_name}:{password_hash_base64}:{last_seen}\n")

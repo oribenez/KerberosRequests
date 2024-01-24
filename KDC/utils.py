@@ -16,16 +16,11 @@ import uuid
 
 
 def generate_random_uuid():
-    # Generate a random integer to use as the UUID
-    random_integer = number.getRandomNBitInteger(128)
+    random_uuid = uuid.uuid4()
+    nodash_uuid = str(random_uuid).replace('-', '')
+    uuid16bytes = nodash_uuid[:16]
 
-    # Convert the integer to a bytes object
-    uuid_bytes = random_integer.to_bytes(16, byteorder='little')
-
-    # Create a UUID object from the bytes and convert it to a hex string without dashes
-    uuid_without_dashes = str(uuid.UUID(bytes=uuid_bytes)).replace('-', '')
-
-    return uuid_without_dashes
+    return uuid16bytes
 
 
 def read_port_from_file(port_filename="port.info"):

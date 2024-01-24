@@ -3,8 +3,8 @@ import sys
 import time
 
 from lib.ServerException import ServerException
-from lib.utils import send_request, unpack_key_base64, hash_password, decrypt_aes_cbc, \
-    encrypt_aes_cbc, pack_key_base64
+from lib.utils import send_request, hash_password, decrypt_aes_cbc, \
+    encrypt_aes_cbc
 from config import __user_creds_filename__, __kdc_server_port__, __kdc_server_ip__, __msg_server_port__, \
     __msg_server_ip__
 from lib.config import __api_version__
@@ -12,6 +12,7 @@ from lib.config import salt
 
 
 def register_new_user(user_name, user_pass):
+    print('register_new_user')
     # request to server - new connection
     request = {
         'header': {
@@ -25,7 +26,8 @@ def register_new_user(user_name, user_pass):
     }
 
     response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
-    print(response)
+    print('response: ', response)
+
     response_code = response["header"]["code"]
     if response_code == 1600:  # registration success
         print("[1600] Registration success")
@@ -50,6 +52,7 @@ def register_new_user(user_name, user_pass):
 
 
 def get_servers_list(client):
+    print('get_servers_list()')
     request = {
         'header': {
             'client_id': client["client_id"],
@@ -59,7 +62,10 @@ def get_servers_list(client):
     }
 
     response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
-    servers_list = response['payload']['servers_list']
+    print("Response payload: ", response['payload'])
+
+    # expecting a list in payload
+    servers_list = response['payload']  # FIXME
 
     return servers_list
 
@@ -84,10 +90,12 @@ def get_symmetric_key_kdc(client_id, client_password, server_id):
 
     response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
     print("response:", response)
+    if response['header']['code'] != 1603:
+        raise ServerException()
 
     symmetric_key = response['payload']['symmetric_key']
-    iv = unpack_key_base64(symmetric_key['iv'])
-    encrypted_session_aes_key = unpack_key_base64(symmetric_key['aes_key'])
+    iv = symmetric_key['symm_iv']
+    encrypted_session_aes_key = symmetric_key['aes_key']
     client_password_hash = hash_password(client_password, salt)
     decrypted_session_aes_key = decrypt_aes_cbc(client_password_hash, iv, encrypted_session_aes_key)
 
@@ -100,14 +108,18 @@ def get_symmetric_key_kdc(client_id, client_password, server_id):
 def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket):
     print('send_symmetric_key_msg_server()')
     timestamp = str(time.time())
-    iv, encrypted_version__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=str(__api_version__).encode('utf-8'))
-    _, encrypted_client_id__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=client_id.encode('utf-8'), iv=iv)
-    _, encrypted_server_id__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=server_id.encode('utf-8'), iv=iv)
-    _, encrypted_timestamp__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=timestamp.encode('utf-8'), iv=iv)
+    iv, encrypted_version__with_session_key = encrypt_aes_cbc(key=session_aes_key,
+                                                              data=str(__api_version__).encode('utf-8'))
+    _, encrypted_client_id__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=client_id.encode('utf-8'),
+                                                               iv=iv)
+    _, encrypted_server_id__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=server_id.encode('utf-8'),
+                                                               iv=iv)
+    _, encrypted_timestamp__with_session_key = encrypt_aes_cbc(key=session_aes_key, data=timestamp.encode('utf-8'),
+                                                               iv=iv)
     print('Client:')
-    print('session_aes_key: ', pack_key_base64(session_aes_key))
-    print('auth_iv: ', pack_key_base64(iv))
-    print('version: ', pack_key_base64(encrypted_version__with_session_key))
+    print('session_aes_key: ', session_aes_key)
+    print('auth_iv: ', iv)
+    print('version: ', encrypted_version__with_session_key)
 
     request = {
         'header': {
@@ -116,14 +128,23 @@ def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket)
             'code': 1028
         }, 'payload': {
             'authenticator': {
-                'auth_iv': pack_key_base64(iv),
-                'version': pack_key_base64(encrypted_version__with_session_key),
-                'client_id': pack_key_base64(encrypted_client_id__with_session_key),
-                'server_id': pack_key_base64(encrypted_server_id__with_session_key),
-                'timestamp': pack_key_base64(encrypted_timestamp__with_session_key),
+                'auth_iv': iv,
+                'version': encrypted_version__with_session_key,
+                'client_id': encrypted_client_id__with_session_key,
+                'server_id': encrypted_server_id__with_session_key,
+                'timestamp': encrypted_timestamp__with_session_key
             }, 'ticket': ticket
         }
     }
+
+    print("authenticator: ", {'authenticator': {
+                'auth_iv': iv,
+                'version': encrypted_version__with_session_key,
+                'client_id': encrypted_client_id__with_session_key,
+                'server_id': encrypted_server_id__with_session_key,
+                'timestamp': encrypted_timestamp__with_session_key
+            }})
+    print("ticket: ", ticket)
     response = send_request(__msg_server_ip__, __msg_server_port__, request)
     print(response)
 
@@ -133,13 +154,12 @@ def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket)
 
 
 def send_message(client_id, client_password, server_id, message):
-
     iv, aes_key, ticket = get_symmetric_key_kdc(client_id, client_password, server_id)
     send_symmetric_key_msg_server(client_id, server_id, aes_key, ticket)
 
     _, encrypted_message = encrypt_aes_cbc(aes_key, message.encode('utf-8'), iv)
     message_size = sys.getsizeof(encrypted_message)
-    print(encrypted_message)
+    print("encrypted_message: ", encrypted_message)
     request = {
         'header': {
             'client_id': client_id,
@@ -147,10 +167,9 @@ def send_message(client_id, client_password, server_id, message):
             'code': 1029
         }, 'payload': {
             'message_size': message_size,
-            'iv': pack_key_base64(iv),
-            'message_content': pack_key_base64(encrypted_message)
+            'iv': iv,
+            'message_content': encrypted_message
         }
     }
     response = send_request(__msg_server_ip__, __msg_server_port__, request)
     print(response)
-
