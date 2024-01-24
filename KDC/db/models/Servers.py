@@ -22,11 +22,13 @@ class Servers:
                 with open(os.getcwd()+self.file_path, 'r') as file:
                     for line in file:
                         server_data = line.strip().split(':')
-                        if len(server_data) == 3:
+                        if len(server_data) == 5:
                             server = {
                                 'server_id': unpack_key_hex(server_data[0].encode('utf-8')).decode('utf-8'),
                                 'name': server_data[1],
-                                'aes_key': unpack_key_base64(server_data[2].encode('utf-8')),
+                                'server_ip': server_data[2],
+                                'server_port': int(server_data[3]),
+                                'aes_key': unpack_key_base64(server_data[4].encode('utf-8')),
                             }
                             servers_temp.append(server)
 
@@ -41,9 +43,11 @@ class Servers:
                     for server in self.servers:
                         server_id_hex = pack_key_hex(server['server_id'].encode('utf-8'))
                         server_name = server['name']
+                        server_ip = server['server_ip']
+                        server_port = server['server_port']
                         server_aes_key_base64 = pack_key_base64(server['aes_key'])
 
-                        file.write(f"{server_id_hex}:{server_name}:{server_aes_key_base64}\n")
+                        file.write(f"{server_id_hex}:{server_name}:{server_ip}:{server_port}:{server_aes_key_base64}\n")
 
             except IOError:
                 print(f"Error: Unable to save servers to file '{self.file_path}'")
@@ -64,7 +68,9 @@ class Servers:
         for server in self.servers:
             servers_list += [{
                 "server_id": server["server_id"],
-                "name": server["name"]
+                "name": server["name"],
+                "server_ip": server["server_ip"],
+                "server_port": server["server_port"]
             }]
 
         return servers_list

@@ -7,21 +7,11 @@ def read_user_from_file(filename):
             lines = file.readlines()
 
             # Extracting information
-            ip, port = lines[0].strip().split(":")
-            name = lines[1].strip()
-            client_id = lines[2].strip()
-
-            # Validate
-            if not port.isdigit():
-                raise ValueError("Invalid port number.")
-            # Validate IP address using the ipaddress module
-            try:
-                ipaddress.IPv4Address(ip)
-            except ipaddress.AddressValueError:
-                raise ValueError("Invalid IPv4 address.")
+            name = lines[0].strip()
+            client_id = lines[1].strip()
 
             client = {
-                'ip': ip, 'port': port, 'name': name, 'client_id': client_id
+                'name': name, 'client_id': client_id
             }
             return client
 

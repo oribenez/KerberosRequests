@@ -1,7 +1,7 @@
 import time
 
 from MessagesServer.utils import are_timestamps_close
-from lib.utils import decrypt_aes_cbc, unpack_key_base64, pack_key_base64, send, RESPONSE, color, GREEN
+from lib.utils import decrypt_aes_cbc, send, RESPONSE, color, GREEN, BLUE
 from config import __api_version__
 from lib.ServerException import ServerException
 import data as data
@@ -84,7 +84,7 @@ def send_message(connection, req):
     print('encrypted_message: ', encrypted_message)
     message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
 
-    print("Message received: ", message)
+    print(color(f"Message received: {message}", BLUE))
 
     response = {
         'header': {

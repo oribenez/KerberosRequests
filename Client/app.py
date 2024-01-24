@@ -1,12 +1,13 @@
 from lib.ServerException import ServerException
-from config import __user_creds_filename__
+# from config import __user_creds_filename__, read_kdc_server_info
+import config as cfg
 from lib.utils import color, GREEN, bold
 from utils import read_user_from_file
 from api import register_new_user, get_servers_list, send_message
 
 
 def get_client_info_gui():
-    client = read_user_from_file(__user_creds_filename__)
+    client = read_user_from_file(cfg.__user_creds_filename__)
     if not client:  # client file not found
 
         # ask from client to sign up
@@ -58,18 +59,21 @@ def send_message_gui(client, server):
 
     client_id = client["client_id"]
     client_password = input("Type your password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
-    server_id = server["server_id"]
 
     # send the message to the Messages server
-    send_message(client_id, client_password, server_id, message)
+    send_message(client_id, client_password, server, message)
 
 
 def main():
 
     # GUI
     try:
+        # read KDC server info file
+        cfg.read_kdc_server_info()
+
         # load client from file, if not exist, register new client
         client = get_client_info_gui()
+        print(f"Client info: ", client)
 
         # ask client to choose a server to send a message.
         selected_server = choose_server_gui(client)

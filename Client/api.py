@@ -5,8 +5,7 @@ import time
 from lib.ServerException import ServerException
 from lib.utils import send_request, hash_password, decrypt_aes_cbc, \
     encrypt_aes_cbc
-from config import __user_creds_filename__, __kdc_server_port__, __kdc_server_ip__, __msg_server_port__, \
-    __msg_server_ip__
+import config as cfg
 from lib.config import __api_version__
 from lib.config import salt
 
@@ -25,19 +24,19 @@ def register_new_user(user_name, user_pass):
         }
     }
 
-    response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
+    response = send_request(cfg.__kdc_server_ip__, cfg.__kdc_server_port__, request)
     print('response: ', response)
 
     response_code = response["header"]["code"]
     if response_code == 1600:  # registration success
         print("[1600] Registration success")
         # save user to file
-        with open(__user_creds_filename__, "w") as file:
+        with open(cfg.__user_creds_filename__, "w") as file:
             client_id = response["payload"]["client_id"]
-            file.write(f"{__kdc_server_ip__}:{__kdc_server_port__}\n{user_name}\n{client_id}")
+            file.write(f"{user_name}\n{client_id}")
 
         client = {
-            'ip': __kdc_server_ip__, 'port': __kdc_server_port__, 'name': user_name, 'client_id': client_id
+            'name': user_name, 'client_id': client_id
         }
 
         return client
@@ -60,8 +59,7 @@ def get_servers_list(client):
             'code': 1026
         }
     }
-
-    response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
+    response = send_request(cfg.__kdc_server_ip__, cfg.__kdc_server_port__, request)
     print("Response payload: ", response['payload'])
 
     # expecting a list in payload
@@ -82,13 +80,12 @@ def get_symmetric_key_kdc(client_id, client_password, server_id):
             'code': 1027
         },
         'payload': {
-            'client_id': client_id,
             'server_id': server_id,
             'nonce': nonce
         }
     }
 
-    response = send_request(__kdc_server_ip__, __kdc_server_port__, request)
+    response = send_request(cfg.__kdc_server_ip__, cfg.__kdc_server_port__, request)
     print("response:", response)
     if response['header']['code'] != 1603:
         raise ServerException()
@@ -105,8 +102,10 @@ def get_symmetric_key_kdc(client_id, client_password, server_id):
 
 
 # send symmetric key to messages server
-def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket):
+def send_symmetric_key_msg_server(client_id, server_info, session_aes_key, ticket):
     print('send_symmetric_key_msg_server()')
+    server_id, server_ip, server_port = server_info["server_id"], server_info["server_ip"], server_info["server_port"]
+
     timestamp = str(time.time())
     iv, encrypted_version__with_session_key = encrypt_aes_cbc(key=session_aes_key,
                                                               data=str(__api_version__).encode('utf-8'))
@@ -145,7 +144,7 @@ def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket)
                 'timestamp': encrypted_timestamp__with_session_key
             }})
     print("ticket: ", ticket)
-    response = send_request(__msg_server_ip__, __msg_server_port__, request)
+    response = send_request(server_ip, server_port, request)
     print(response)
 
     # Make sure the server accepted the symmetric key
@@ -153,9 +152,11 @@ def send_symmetric_key_msg_server(client_id, server_id, session_aes_key, ticket)
         raise ServerException()
 
 
-def send_message(client_id, client_password, server_id, message):
+def send_message(client_id, client_password, server_info, message):
+    server_id, server_ip, server_port = server_info["server_id"], server_info["server_ip"], server_info["server_port"]
+
     iv, aes_key, ticket = get_symmetric_key_kdc(client_id, client_password, server_id)
-    send_symmetric_key_msg_server(client_id, server_id, aes_key, ticket)
+    send_symmetric_key_msg_server(client_id, server_info, aes_key, ticket)
 
     _, encrypted_message = encrypt_aes_cbc(aes_key, message.encode('utf-8'), iv)
     message_size = sys.getsizeof(encrypted_message)
@@ -171,5 +172,5 @@ def send_message(client_id, client_password, server_id, message):
             'message_content': encrypted_message
         }
     }
-    response = send_request(__msg_server_ip__, __msg_server_port__, request)
+    response = send_request(server_ip, server_port, request)
     print(response)

@@ -7,9 +7,9 @@ package_dict = {
         'payload': {
             # KDC
             '1024': {'format': '<255s255s', 'keys': ('name', 'password'), 'types': (str, str)},
-            '1025': {'format': '<255s32s', 'keys': ('name', 'aes_key'), 'types': (str, bytes)},
+            '1025': {'format': '<255s32s16sH', 'keys': ('name', 'aes_key', 'server_ip', 'server_port'), 'types': (str, bytes, str, int)},
             '1026': None,
-            '1027': {'format': '<16s16s8s', 'keys': ('client_id', 'server_id', 'nonce'), 'types': (str, str, int)},
+            '1027': {'format': '<16s8s', 'keys': ('server_id', 'nonce'), 'types': (str, int)},
 
             # MSG Server
             '1028': {'format': '<16s16s32s32s32sB16s16sf16s48s16s',
@@ -24,10 +24,10 @@ package_dict = {
             '16000': {'format': '<16s', 'keys': ('server_id',), 'types': (str,)},
             '1600': {'format': '<16s', 'keys': ('client_id',), 'types': (str,)},
             '1601': None,
-            '1602': {'format': '<16s255s', 'keys': ('server_id', 'name'), 'is_list': True, 'types': (str, str)},
-            '1603': {'format': '<16s16s48sB16s16sf16s48s16s',  # FIXME I changed the number of AES KEYS TO 48
-                     'keys': ('client_id', 'symmetric_key__symm_iv', 'symmetric_key__aes_key', 'ticket__version', 'ticket__client_id', 'ticket__server_id', 'ticket__timestamp', 'ticket__ticket_iv', 'ticket__aes_key', 'ticket__expiration_time'),
-                     'types': (str, bytes, bytes, int, str, str, float, bytes, bytes, bytes)
+            '1602': {'format': '<16s255s16sH', 'keys': ('server_id', 'name', 'server_ip', 'server_port'), 'is_list': True, 'types': (str, str, str, int)},
+            '1603': {'format': '<16s16s16s48sB16s16sf16s48s16s',  # FIXME I changed the number of AES KEYS TO 48
+                     'keys': ('client_id', 'symmetric_key__symm_iv', 'symmetric_key__nonce', 'symmetric_key__aes_key', 'ticket__version', 'ticket__client_id', 'ticket__server_id', 'ticket__timestamp', 'ticket__ticket_iv', 'ticket__aes_key', 'ticket__expiration_time'),
+                     'types': (str, bytes, bytes, bytes, int, str, str, float, bytes, bytes, bytes)
                      },
 
             # MSG Server

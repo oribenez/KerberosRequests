@@ -66,6 +66,8 @@ def register_server(connection, req):
         server = {
             "server_id": server_id,
             "name": req["payload"]["name"],
+            "server_ip": req["payload"]["server_ip"],
+            "server_port": req["payload"]["server_port"],
             "aes_key": req["payload"]["aes_key"],
         }
 
@@ -108,6 +110,8 @@ def get_servers_list(connection, req):
     for ind, server in enumerate(servers_list):
         response['payload']['server_id__' + str(ind)] = server['server_id']
         response['payload']['server_name__' + str(ind)] = server['name']
+        response['payload']['server_ip__' + str(ind)] = server['server_ip']
+        response['payload']['server_port__' + str(ind)] = server['server_port']
     print("Response: ", response)
     send(connection, RESPONSE, response)
 
@@ -129,8 +133,12 @@ def get_symmetric_key(connection, req):
     client_password_hash = models.db["clients"].get_password_hash_by_client_id(client_id)
     print('client_password_hash: ', client_password_hash)
 
+    # Encrypted [Nonce] with [Client key]
+    iv__c, encrypted_nonce__with_c = encrypt_aes_cbc(key=client_password_hash, data=nonce)
+
     # Encrypted [Session key] with [Client key]
-    iv__c, encrypted_session_aes_key__with_c = encrypt_aes_cbc(key=client_password_hash, data=session_aes_key)
+    _, encrypted_session_aes_key__with_c = encrypt_aes_cbc(key=client_password_hash, data=session_aes_key, iv=iv__c)
+
     print('server_id: ', server_id)
     # server AES key generated at server registration
     server_aes_key = models.db["servers"].get_aes_key_by_server_id(server_id)
@@ -153,6 +161,7 @@ def get_symmetric_key(connection, req):
             'client_id': client_id,
             'symmetric_key': {
                 'symm_iv': iv__c,
+                'nonce': encrypted_nonce__with_c,
                 'aes_key': encrypted_session_aes_key__with_c,
             }, 'ticket': {
                 'version': __api_version__,
@@ -171,8 +180,6 @@ def get_symmetric_key(connection, req):
     print('ticket__iv: ', ticket_iv)
     print('ticket__aes_key: ', encrypted_session_aes_key__with_s)
     print(f'server_aes_key({len(server_aes_key)}): ', server_aes_key)
-    temp_delete_it = decrypt_aes_cbc(server_aes_key, ticket_iv, encrypted_session_aes_key__with_s)
-    print(color(f'decrypted_aes:{temp_delete_it}', RED))
     print(f'ticket__expiration_time ({len(encrypted_expiration_time__with_s)}): ', encrypted_expiration_time__with_s)
 
     send(connection, RESPONSE, response)
