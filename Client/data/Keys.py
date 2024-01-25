@@ -1,16 +1,6 @@
 import time
 
 
-# def is_expired(key):
-#     now = time.time()
-#     expiration_time = symmetric_keys['ticket']['expiration_time']
-#
-#     if now > expiration_time:
-#         return True
-#
-#     return False
-#
-
 class Keys:
     def __init__(self):
         self.keys = []
@@ -32,27 +22,9 @@ class Keys:
     def get_key_by_server_id(self, server_id):
         for key in self.keys:
             if key['server_id'] == server_id:
-                # FIXME: the expiration_time is in bytes, that is not good we need too decrypt it but we cant so
-                # I need to check this how I can know the expiration time of a ticket
-                # maybe I need to define the exp_time as global var
-                # if not is_expired(ticket_and_key):
-                #     self.remove_ticket_and_key(ticket_and_key)
-                # else:
-                #     return ticket_and_key
                 return key
 
         return None
-
-    # def get_aes_key(self, server_id):
-    #     ticket_and_key = self.get_ticket_and_key_by_server_id(server_id)
-    #     if is_expired(ticket_and_key):
-    #         self.remove_ticket_and_key(ticket_and_key)
-    #         return None
-    #
-    #     aes_key = ticket_and_key['symmetric_key']['aes_key']
-    #
-    #     return aes_key
-
 
 
 

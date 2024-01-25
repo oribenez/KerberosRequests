@@ -15,8 +15,8 @@ def get_client_info_gui():
         while True:
             user_name = input("Please type your name: ") or 'Michael Jackson'  # FIXME: for testing only
 
-            if len(user_name) > 100:
-                print("Username must be max 100 characters. ")
+            if len(user_name) > 255:
+                print("Username must be max 255 characters. ")
             else:
                 break
 

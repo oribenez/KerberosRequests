@@ -49,7 +49,7 @@ def decrypt_aes_cbc(key: bytes, iv: bytes, encrypted_data: bytes) -> bytes:
 
 
 def encrypt_aes_cbc(key: bytes, data: bytes, iv: bytes = None) -> (bytes, bytes):
-    print("encrypt_aes_cbc()")
+    # print("encrypt_aes_cbc()")
     try:
         if iv is None:
             iv = get_random_bytes(16)
@@ -57,8 +57,8 @@ def encrypt_aes_cbc(key: bytes, data: bytes, iv: bytes = None) -> (bytes, bytes)
         cipher = AES.new(key, AES.MODE_CBC, iv)
         ciphered_data = cipher.encrypt(pad(data, AES.block_size))
 
-        print(f"iv ({len(cipher.iv)}): {cipher.iv}")
-        print(f"ciphertext ({len(ciphered_data)}): ", ciphered_data)
+        # print(f"iv ({len(cipher.iv)}): {cipher.iv}")
+        # print(f"ciphertext ({len(ciphered_data)}): ", ciphered_data)
         return cipher.iv, ciphered_data
     except Exception as e:
         print("encrypt_aes_cbc():: ", e)
@@ -95,7 +95,7 @@ def unflatten_dict(data):
 
 
 def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
-    print('pack_data()')
+    # print('pack_data()')
     code = str(req['header']['code'])
 
     packed_payload = b''
@@ -110,8 +110,6 @@ def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
         payload = tuple(value.encode("utf-8") if isinstance(value, str) else value for value in payload)
         payload_format_cycled_per_keys = payload_format[0] + str(payload_format[1:]) * int(
             len(payload) / len(payload_keys))
-        print('payload_format_cycled_per_keys: ', payload_format_cycled_per_keys)
-        print('payload: ', payload)
 
         if 'is_last_item_has_unknown_size' in package_dict[packing_type]['payload'][code]:
             last_val = payload[-1]
@@ -124,7 +122,6 @@ def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
     header = tuple(req['header'].values())
     header = tuple(value.encode("utf-8") if isinstance(value, str) else value for value in header)
 
-    print(header)
     header_format = package_dict[packing_type]['header']['format']
     packed_header = struct.pack(header_format, *header)
 
@@ -132,7 +129,7 @@ def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
 
 
 def unpack_data(package_dict: dict, packing_type: str, data: bytes) -> dict:
-    print('unpack_data()')
+    # print('unpack_data()')
 
     # unpack header
     header_format = package_dict[packing_type]['header']['format']
@@ -153,7 +150,6 @@ def unpack_data(package_dict: dict, packing_type: str, data: bytes) -> dict:
 
     # unpack payload
     code = str(header['code'])
-    print('code: ', code)
     if package_dict[packing_type]['payload'][code] is not None:
         payload_types = package_dict[packing_type]['payload'][code]['types']
         payload_format = package_dict[packing_type]['payload'][code]['format']

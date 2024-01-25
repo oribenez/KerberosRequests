@@ -61,8 +61,6 @@ class Clients:
         return is_exist
 
     def get_password_hash_by_client_id(self, client_id):
-        print(f"get_password_hash_by_client_id(client_id={client_id})")
-        print(self.clients)
         for client in self.clients:
             if client["client_id"] == client_id:
                 return client["password_hash"]

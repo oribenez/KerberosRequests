@@ -54,7 +54,7 @@ def run_server():
 
         while True:
             connection, address = server_socket.accept()
-            print(f"Connection established from {address}")
+            # print(f"Connection established from {address}")
 
             # Start a new thread to handle the client
             client_handler = threading.Thread(target=handle_request, args=[connection])

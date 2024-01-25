@@ -8,14 +8,11 @@ import data as data
 
 
 def accept_symmetric_key(connection, req):
-    print(color('accept_symmetric_key()', GREEN))
     server_info = data.db["server_info"]
     server_aes_key = server_info["aes_key"]
 
     authenticator = req['payload']['authenticator']
     ticket = req['payload']['ticket']
-    print("authenticator: ", authenticator)
-    print("ticket: ", ticket)
 
     # Ticket
     ticket_version = int(ticket['version'])
@@ -73,7 +70,7 @@ def accept_symmetric_key(connection, req):
         }
     }
     send(connection, RESPONSE, response)
-    print('[SUCCESS] Symmetric key accepted')
+    print(color('[SUCCESS] Symmetric key accepted', GREEN))
 
 
 def send_message(connection, req):
@@ -82,7 +79,6 @@ def send_message(connection, req):
     iv = req['payload']['iv']
 
     encrypted_message = req['payload']['message_content']
-    print('encrypted_message: ', encrypted_message)
 
     message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
     print(color(f"Message received: {message}", BLUE))

@@ -27,9 +27,8 @@ def register_new_server(server_info):
 
     response = send_request(cfg.__kdc_server_ip__, cfg.__kdc_server_port__, request)
     response_code = response["header"]["code"]
-    print('response:', response)
     if response_code == 16000:  # registration success
-        print("[16000] Registration success")
+        print("[SUCCESS] Server registered")
         # save user to file
         with open(__server_creds_filename__, "w") as file:
             server_id = response["payload"]["server_id"]
