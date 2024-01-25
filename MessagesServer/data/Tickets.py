@@ -2,6 +2,16 @@ import time
 
 
 def is_expired(ticket):
+    """
+    Check if the ticket has expired.
+
+    Args:
+        ticket (dict): Ticket information.
+
+    Returns:
+        bool: True if the ticket has expired, False otherwise.
+    """
+
     now = time.time()
     expiration_time = ticket['expiration_time']
 
@@ -12,6 +22,23 @@ def is_expired(ticket):
 
 
 class Tickets:
+    """
+        A class representing a collection of tickets for communication sessions.
+
+        Tickets are used to store information related to client-server communication,
+        including AES keys and expiration times.
+
+        Attributes:
+            tickets_list (list): A list to store ticket information.
+
+        Methods:
+            __init__(self): Initializes a Tickets object with an empty list.
+            add_ticket(self, ticket): Adds a ticket, replacing any existing ticket for the same client.
+            remove_ticket(self, ticket): Removes a ticket from the list.
+            get_ticket_by_client_id(self, client_id): Retrieves a ticket based on the client ID.
+            get_aes_key(self, client_id): Retrieves the AES key associated with a client ID, checking for expiration.
+        """
+
     def __init__(self):
         self.tickets_list = []
 

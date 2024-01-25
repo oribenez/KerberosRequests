@@ -15,6 +15,20 @@ import KDC.db.models as models
 
 
 def register_client(connection, req):
+    """
+    Registers a new client and adds them to the clients list.
+
+    Params:
+    - connection: The socket connection with the client.
+    - req (dict): The request containing client information.
+
+    Raises:
+    - Exception: Raised in case of an error during client registration.
+
+    Response:
+    - Sends a response to the client indicating the success or failure of the registration.
+    """
+
     try:
         # add client to clients list
         client_id = generate_random_uuid()
@@ -56,7 +70,20 @@ def register_client(connection, req):
 
 
 def register_server(connection, req):
-    # print("register_server()")
+    """
+    Registers a new server and adds it to the servers list.
+
+    Params:
+    - connection: The socket connection with the messaging server.
+    - req (dict): The request containing server information.
+
+    Raises:
+    - Exception: Raised in case of an error during server registration.
+
+    Response:
+    - Sends a response to the client indicating the success or failure of the registration.
+    """
+
     try:
         # add client to clients list
         server_id = generate_random_uuid()
@@ -97,7 +124,17 @@ def register_server(connection, req):
 
 
 def get_servers_list(connection, req):
-    # print("get_servers_list()")
+    """
+    Retrieves the list of registered servers and sends it to the requesting client.
+
+    Params:
+    - connection: The socket connection with the client.
+    - req (dict): The request for the servers list.
+
+    Response:
+    - Sends a response to the client containing the list of servers.
+    """
+
     servers_list = models.db["servers"].get_all_servers()
 
     response = {
@@ -117,6 +154,16 @@ def get_servers_list(connection, req):
 
 
 def get_symmetric_key(connection, req):
+    """
+    Retrieves a symmetric key for secure communication between a client and a server.
+
+    Params:
+    - connection: The socket connection with the client.
+    - req (dict): The request containing client id, server id, and a nonce.
+
+    Response:
+    - Sends a response to the client containing the symmetric key and a ticket for secure communication.
+    """
     # unpack request values
     client_id = req["header"]["client_id"]
     server_id = req["payload"]["server_id"]
@@ -173,4 +220,14 @@ def get_symmetric_key(connection, req):
 
 
 def not_found_controller(connection, req):
+    """
+    Handles the case when the requested controller for a given request code is not found.
+
+    Params:
+    - connection: The socket connection with the client.
+    - req (dict): The request with an invalid or unknown code.
+
+    Raises:
+    - ValueError: Raised to indicate an invalid request code.
+    """
     raise ValueError("Invalid request code")

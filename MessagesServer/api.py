@@ -8,6 +8,22 @@ import config as cfg
 
 
 def register_new_server(server_info):
+    """
+        Registers a new server with the Key Distribution Center (KDC).
+
+        Generates a random AES key for the server, sends a registration request to the KDC,
+        and saves server information to a file upon successful registration.
+
+        Args:
+            server_info (dict): Information about the new server.
+
+        Returns:
+            dict: Server information, including server ID and AES key.
+
+        Raises:
+            ServerException: If registration fails or an unknown response is received.
+        """
+
     # Generate a random 256-bit (32-byte) AES key for server and client
     aes_key = get_random_bytes(32)
 

@@ -1,15 +1,22 @@
 __user_creds_filename__ = 'me.info'
 
-__kdc_server_ip__ = '127.0.0.1'
-__kdc_server_port__ = 8000
+__kdc_server_ip__ = '127.0.0.1'  # default
+__kdc_server_port__ = 8000  # default
 
-__msg_server_ip__ = '127.0.0.1'
-__msg_server_port__ = __kdc_server_port__ + 1 or 8001
 
 import ipaddress
 
 
 def read_kdc_server_info(kdc_server_filename='srv.info'):
+    """
+        Reads Key Distribution Center (KDC) server information from a file.
+
+        Params:
+        - kdc_server_filename (str): The filename containing KDC server information. Default is 'srv.info'.
+
+        Raises:
+        - ValueError: Raised if the file content is not in the expected format or if the IP address or port is invalid.
+        """
 
     with open(kdc_server_filename, 'r') as file:
         ip, port = file.read().strip().split(':')

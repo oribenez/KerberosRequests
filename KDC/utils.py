@@ -16,6 +16,12 @@ import uuid
 
 
 def generate_random_uuid():
+    """
+    Generates a random UUID and returns it as 16 bytes.
+
+    Returns:
+    - str: 16 bytes of the generated UUID without dashes.
+    """
     random_uuid = uuid.uuid4()
     nodash_uuid = str(random_uuid).replace('-', '')
     uuid16bytes = nodash_uuid[:16]
@@ -24,6 +30,16 @@ def generate_random_uuid():
 
 
 def read_port_from_file(port_filename="port.info"):
+    """
+    Reads the port number from a file.
+
+    Params:
+    - port_filename (str): The filename containing the port number.
+
+    Returns:
+    - int: The port number read from the file or the default port if file not found or invalid.
+    """
+
     default_port = 1256  # default port
 
     try:

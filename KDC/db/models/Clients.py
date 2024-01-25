@@ -5,6 +5,21 @@ from KDC.db.models.RecordAlreadyExist import RecordAlreadyExist
 from lib.utils import pack_key_hex, pack_key_base64, unpack_key_hex, unpack_key_base64
 
 
+"""
+Module: clients.py
+
+This module defines the Clients class, which manages clients information, including loading and saving to a file.
+
+Methods:
+- __init__: Initializes an instance of the Clients class with a default file path.
+- load_clients_from_file: Loads client information from a file.
+- save_clients_to_file: Saves client information to a file.
+- is_exist: Checks if a client with the same name already exists.
+- get_password_hash_by_client_id: Retrieves the password hash based on the client's ID.
+- add_client: Adds a new client, checking for existence by name and raising an exception if already present.
+"""
+
+
 class Clients:
 
     def __init__(self, file_path='/db/data/clients'):

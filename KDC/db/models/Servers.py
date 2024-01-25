@@ -1,3 +1,18 @@
+"""
+Module: servers.py
+
+This module defines the Servers class, which manages servers information, including loading and saving to a file.
+
+Methods:
+- __init__: Initializes an instance of the Servers class with a default file path.
+- load_servers_from_file: Loads server information from a file.
+- save_servers_to_file: Saves server information to a file.
+- is_exist: Checks if a server with the same server_id already exists.
+- get_all_servers: Retrieves information about all servers.
+- get_aes_key_by_server_id: Retrieves the AES key based on the server's ID.
+- add_server: Adds a new server, checking for existence by name and raising an exception if already present.
+"""
+
 import os
 import threading
 

@@ -1,4 +1,18 @@
-import time
+"""
+Module: keys.py
+
+This module defines the Keys class, which manages the storage and retrieval of symmetric keys for secure communication.
+this class give the user an option to send messages without asking for new symmetric key from KDC and using the old one.
+
+Classes:
+- Keys: Manages a list of keys associated with Messaging servers.
+
+Methods:
+- __init__: Initializes an instance of the Keys class.
+- add_key: Adds a new key to the key database, removing any old key with the same server_id.
+- remove_key: Removes a key from the key database.
+- get_key_by_server_id: Retrieves a key based on the server_id.
+"""
 
 
 class Keys:

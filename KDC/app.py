@@ -11,6 +11,16 @@ import KDC.db.models as models
 
 
 def handle_request(connection):
+    """
+        Handles incoming requests from clients and Messaging servers.
+
+        Params:
+        - connection: The socket connection with the client or the Messaging server.
+
+        Raises:
+        - Exception: Raised in case of an error during request processing.
+        """
+
     controller = 'undefined'
     try:
         # Receive request from client
@@ -40,6 +50,13 @@ def handle_request(connection):
 
 
 def run_server():
+    """
+        Runs the Key Distribution Center (KDC) server, handling incoming connections.
+
+        Raises:
+        - KeyboardInterrupt: Raised when the server is manually interrupted, leading to a graceful shutdown.
+        """
+
     port = read_port_from_file()
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

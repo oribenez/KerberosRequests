@@ -14,63 +14,139 @@ from Crypto.Util.Padding import pad, unpad
 
 
 def pack_key_base64(key: bytes):
+    """
+    Encode a byte sequence using base64 encoding.
+
+    Parameters:
+        - key (bytes): The byte sequence to be encoded.
+
+    Returns:
+        str: The base64-encoded string representation of the input byte sequence.
+    """
     return base64.b64encode(key).decode('utf-8')
 
 
 def unpack_key_base64(key: bytes):
+    """
+        Decode a base64-encoded string into a byte sequence.
+
+    Parameters:
+        - key (bytes): The base64-encoded string to be decoded.
+
+    Returns:
+        bytes: The byte sequence decoded from the input base64-encoded string.
+    """
     return base64.b64decode(key)
 
 
 def pack_key_hex(key: bytes):
+    """
+        Convert a byte sequence into a hex-encoded string.
+
+    Parameters:
+        - key (bytes): The byte sequence to be hex-encoded.
+
+    Returns:
+        str: The hex-encoded string representing the input byte sequence.
+    """
     return binascii.hexlify(key).decode('utf-8')
 
 
 def unpack_key_hex(key: bytes):
+    """
+        Convert a hex-encoded string into a byte sequence.
+
+    Parameters:
+        - key (bytes): The hex-encoded string to be converted.
+
+    Returns:
+        bytes: The byte sequence representing the input hex-encoded string.
+    """
     return binascii.unhexlify(key)
 
 
 def hash_password(password: str, salt: bytes = general_salt, key_length=32, iterations=1000000):
+    """
+        Hash a password using PBKDF2 with a specified salt, key length, and number of iterations.
+
+    Parameters:
+        - password (str): The password to be hashed.
+        - salt (bytes): The salt to be used in the hashing process. Defaults to the general salt.
+        - key_length (int): The length of the derived key in bytes. Defaults to 32.
+        - iterations (int): The number of iterations for the PBKDF2 algorithm. Defaults to 1,000,000.
+
+    Returns:
+        bytes: The hashed password.
+    """
     hashed_password = PBKDF2(password, salt, dkLen=key_length, count=iterations)
     return hashed_password
 
 
 def decrypt_aes_cbc(key: bytes, iv: bytes, encrypted_data: bytes) -> bytes:
-    try:
-        cipher = AES.new(key, AES.MODE_CBC, iv=iv)
-        deciphered_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
+    """
+    Decrypt data using AES in CBC mode.
 
-        return deciphered_data
-    except Exception as e:
+    Parameters:
+        - key (bytes): The key for AES decryption.
+        - iv (bytes): The initialization vector for AES decryption.
+        - encrypted_data (bytes): The data to be decrypted.
 
-        print("decrypt_aes_cbc():: ", e)
-        print(f"key: {key} | iv: {iv} | encrypted_data: {encrypted_data}")
-        print(f"key: {len(key)} | iv: {len(iv)} | encrypted_data: {len(encrypted_data)}")
-        raise e
+    Returns:
+        bytes: The decrypted data.
+    """
+
+    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+    deciphered_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
+
+    return deciphered_data
 
 
 def encrypt_aes_cbc(key: bytes, data: bytes, iv: bytes = None) -> (bytes, bytes):
-    # print("encrypt_aes_cbc()")
-    try:
-        if iv is None:
-            iv = get_random_bytes(16)
+    """
+        Encrypt data using AES in CBC mode.
 
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-        ciphered_data = cipher.encrypt(pad(data, AES.block_size))
+    Parameters:
+        - key (bytes): The key for AES encryption.
+        - data (bytes): The data to be encrypted.
+        - iv (bytes, optional): The initialization vector for AES encryption. If not provided, a random vector will be generated.
 
-        # print(f"iv ({len(cipher.iv)}): {cipher.iv}")
-        # print(f"ciphertext ({len(ciphered_data)}): ", ciphered_data)
-        return cipher.iv, ciphered_data
-    except Exception as e:
-        print("encrypt_aes_cbc():: ", e)
-        print(f"key: {key} \ndata: {iv} \ndata: {data}")
+    Returns:
+        Tuple[bytes, bytes]: A tuple containing the initialization vector (iv) and the encrypted data.
 
-        raise e
+    This function uses the AES algorithm in CBC mode to encrypt the provided data using the specified key and initialization vector.
+    """
+
+    if iv is None:
+        iv = get_random_bytes(16)
+
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    ciphered_data = cipher.encrypt(pad(data, AES.block_size))
+
+    # print(f"iv ({len(cipher.iv)}): {cipher.iv}")
+    # print(f"ciphertext ({len(ciphered_data)}): ", ciphered_data)
+    return cipher.iv, ciphered_data
 
 
+
+"""
+REQUEST, RESPONSE: str
+    Constants representing the types of communication messages - request and response.
+"""
 REQUEST, RESPONSE = 'request', 'response'
 
 
 def flatten_dict(data, parent_key=""):
+    """
+    Flatten a nested dictionary by concatenating keys with a separator.
+
+    Parameters:
+    - data (dict): The nested dictionary to be flattened.
+    - parent_key (str): The prefix to be added to the keys.
+
+    Returns:
+    dict: A flattened dictionary.
+    """
+
     items = []
     for key, value in data.items():
         new_key = f"{parent_key}__{key}" if parent_key else key  # Prefix keys with parent key
@@ -82,6 +158,15 @@ def flatten_dict(data, parent_key=""):
 
 
 def unflatten_dict(data):
+    """
+    Unflatten a dictionary by reversing the flattening process.
+
+    Parameters:
+    - data (dict): The flattened dictionary to be unflattened.
+
+    Returns:
+    dict: The unflattened nested dictionary.
+    """
     nested_dict = {}
     for key, value in data.items():
         parts = key.split("__")  # Split key based on the separator used in flatten_dict
@@ -95,7 +180,18 @@ def unflatten_dict(data):
 
 
 def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
-    # print('pack_data()')
+    """
+    Pack data into a binary format based on the specified packing type using struct library.
+
+    Parameters:
+    - package_dict (dict): Dictionary containing the data packing format.
+    - packing_type (str): Type of data packing ('request' or 'response').
+    - req (dict): The request or response dictionary to be packed.
+
+    Returns:
+    bytes: Packed binary data.
+    """
+
     code = str(req['header']['code'])
 
     packed_payload = b''
@@ -129,7 +225,17 @@ def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
 
 
 def unpack_data(package_dict: dict, packing_type: str, data: bytes) -> dict:
-    # print('unpack_data()')
+    """
+    Unpack binary data into a dictionary based on the specified packing type using struct library.
+
+    Parameters:
+    - package_dict (dict): Dictionary containing the data packing format.
+    - packing_type (str): Type of data packing ('request' or 'response').
+    - data (bytes): Binary data to be unpacked.
+
+    Returns:
+    dict: Unpacked data as a dictionary.
+    """
 
     # unpack header
     header_format = package_dict[packing_type]['header']['format']
@@ -205,11 +311,27 @@ def unpack_data(package_dict: dict, packing_type: str, data: bytes) -> dict:
 
 
 def send(connection, packing_type: str, data: dict):
+    """
+    Send packed data to the specified connection.
+
+    Parameters:
+    - connection: Connection object.
+    - packing_type (str): Type of data packing ('request' or 'response').
+    - data (dict): Data to be sent.
+
+    """
     packed_data = pack_data(general_package_dict, packing_type, data)
     send_data(connection, packed_data)
 
 
 def send_data(connection, data: bytes):
+    """
+    Send raw data over the specified connection.
+
+    Parameters:
+    - connection: Connection object.
+    - data (bytes): Data to be sent.
+    """
     # Send the size of the data
     data_size = len(data)
     connection.sendall(struct.pack("!I", data_size))
@@ -221,6 +343,17 @@ def send_data(connection, data: bytes):
 
 
 def receive_data(connection, timeout=10) -> bytes:
+    """
+    Receive data from the specified connection.
+
+    Parameters:
+    - connection: Connection object.
+    - timeout (int): Timeout value for the connection.
+
+    Returns:
+    bytes: Received data.
+    """
+
     connection.settimeout(timeout)  # Set a timeout for this connection
 
     # Receive the size of the data
@@ -238,6 +371,17 @@ def receive_data(connection, timeout=10) -> bytes:
 
 
 def send_request(ip, port, data: dict) -> dict:
+    """
+    Send a request to the specified IP and port and receive the response.
+
+    Parameters:
+    - ip (str): IP address of the server.
+    - port (int): Port number to connect to.
+    - data (dict): Data to be sent in the request.
+
+    Returns:
+    dict: Response data received from the server.
+    """
     connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     try:
@@ -260,41 +404,37 @@ def send_request(ip, port, data: dict) -> dict:
         connection.close()
 
 
-def read_port_from_file(port_filename="port.info"):
-    default_port = 1256  # default port
-
-    try:
-        with open(port_filename, "r") as port_file:
-            port_file_txt = port_file.read().strip()
-
-            # Validate
-            port = int(port_file_txt)
-            if 1 <= port <= 65535:
-                return port
-            else:
-                print("Error: Port number must be between 1 and 65535.")
-
-    except FileNotFoundError:
-        print(f"Error: File '{port_filename}' not found.")
-    except ValueError:
-        print(f"Error: Invalid port number in '{port_filename}'.")
-
-    print(f"Using default port: {default_port}")
-    return default_port
-
-
 # ANSI escape codes for some colors
-RED = "\033[91m"
-GREEN = "\033[92m"
-YELLOW = "\033[93m"
-BLUE = "\033[94m"
-MAGENTA = "\033[95m"
-CYAN = "\033[96m"
+RED = "\033[91m"      # Red
+GREEN = "\033[92m"    # Green
+YELLOW = "\033[93m"   # Yellow
+BLUE = "\033[94m"     # Blue
+MAGENTA = "\033[95m"  # Magenta
+CYAN = "\033[96m"     # Cyan
 
 
 def color(text, color_code):
+    """
+    Apply ANSI color escape codes to the given text.
+
+    Args:
+        text (str): The text to be colored.
+        color_code (str): ANSI escape code for the desired color.
+
+    Returns:
+        str: The colored text.
+    """
     return f"{color_code}{text}\033[0m"
 
 
 def bold(text):
+    """
+    Apply ANSI escape codes for bold formatting to the given text.
+
+    Args:
+        text (str): The text to be formatted in bold.
+
+    Returns:
+        str: The bold-formatted text.
+    """
     return "\033[1m" + text + "\033[0m"

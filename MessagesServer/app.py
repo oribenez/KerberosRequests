@@ -14,6 +14,16 @@ import config as cfg
 
 
 def handle_request(connection):
+    """
+    Handles the incoming requests from clients.
+
+    This function receives a request from the client, determines the appropriate controller based on the request code,
+    and then executes the corresponding controller to process the request.
+
+    Args:
+        connection (socket): The connection socket for communication with the client.
+    """
+
     controller = 'undefined'
     try:
         # Receive request from client
@@ -44,6 +54,14 @@ def handle_request(connection):
 
 
 def run_server():
+    """
+    Runs the Messages server.
+
+    This function binds the server socket to the specified IP address and port, listens for incoming connections,
+    and starts a new thread to handle each client.
+
+    Note: The server socket is bound to the IP and port specified in the 'server_info' stored in the 'data.db'.
+    """
     msg_server_ip, msg_server_port = data.db['server_info']['server_ip'], data.db['server_info']['server_port']
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((msg_server_ip, msg_server_port))
@@ -68,6 +86,16 @@ def run_server():
 
 
 def read_server_creds_from_file(filename='msg.info'):
+    """
+    Reads server information from a file.
+
+    Args:
+        filename (str): The name of the file to read server information from.
+
+    Returns:
+        dict: Server information including 'name', 'server_ip', 'server_port', 'server_id', and 'aes_key'.
+              Returns None if there is an issue reading the file or extracting information.
+    """
     try:
         with open(filename, "r") as file:
             lines = file.readlines()
@@ -115,6 +143,12 @@ def read_server_creds_from_file(filename='msg.info'):
 
 
 def get_server_info_gui():
+    """
+    Gets server information, reads it from a file, and registers a new server if necessary.
+
+    Returns:
+        dict: Server information including 'server_id', 'name', 'server_ip', 'server_port', and 'aes_key'.
+    """
     server = read_server_creds_from_file(__server_creds_filename__)
 
     # register new client at KDC server
@@ -125,6 +159,17 @@ def get_server_info_gui():
 
 
 def main():
+    """
+    Main function for running the server.
+
+    - Loads server information from a file. If the file does not exist, registers a new server.
+    - Loads the database.
+    - Reads Key Distribution Center (KDC) server information from a file.
+    - Runs the server.
+
+    Raises:
+        ServerException: If there is an issue with server registration.
+    """
     try:
         # load server info from file, if not exist, register new server
         server_info = get_server_info_gui()

@@ -1,7 +1,17 @@
-import ipaddress
 
 
 def read_user_from_file(filename):
+    """
+        Reads user information from a file.
+
+        Params:
+        - filename (str): The name of the file containing user information.
+
+        Returns:
+        - dict or None: A dictionary containing user information (including 'name' and 'client_id') if successful,
+          or None if an error occurs or the file is not found.
+        """
+
     try:
         with open(filename, "r") as file:
             lines = file.readlines()

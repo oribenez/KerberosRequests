@@ -1,4 +1,5 @@
 import time
+from datetime import datetime
 
 from MessagesServer.utils import are_timestamps_close
 from lib.utils import decrypt_aes_cbc, send, RESPONSE, color, GREEN, BLUE
@@ -8,6 +9,19 @@ import data as data
 
 
 def accept_symmetric_key(connection, req):
+    """
+    Handles the acceptance of a symmetric key from a client.
+
+    This function performs the necessary validations and processes the symmetric key information received from the client.
+
+    Args:
+        connection (socket.socket): The connection socket to the client.
+        req (dict): The request received from the client.
+
+    Raises:
+        ServerException: If there is an issue with the validation or if the ticket has expired.
+    """
+
     server_info = data.db["server_info"]
     server_aes_key = server_info["aes_key"]
 
@@ -38,7 +52,7 @@ def accept_symmetric_key(connection, req):
         print(auth_version, ticket_version)
         print(auth_client_id, ticket_client_id)
         print(auth_server_id, ticket_server_id)
-        print(auth_timestamp, ticket_timestamp, are_timestamps_close(auth_timestamp, ticket_timestamp, 30)) # FIXME: 1705871910.606503 1705871909.9221919 they are different!!
+        print(auth_timestamp, ticket_timestamp, are_timestamps_close(auth_timestamp, ticket_timestamp, 200))
         print('invalid ticket')
         raise ServerException()
 
@@ -74,23 +88,58 @@ def accept_symmetric_key(connection, req):
 
 
 def send_message(connection, req):
+    """
+    This function decrypts the received message using the client's AES key, prints the message to the screen with a
+    timestamp, and sends an appropriate response back to the client.
+    if the ticket already exist from previous relations then it will use it to decrypt the message (only if the ticket is not expired)
+
+    Args:
+        connection (socket.socket): The socket connection to the client.
+        req (dict): The request received from the client.
+    """
+
     client_id = req['header']['client_id']
     aes_key = data.db['tickets'].get_aes_key(client_id)
-    iv = req['payload']['iv']
+    if aes_key is not None:
+        iv = req['payload']['iv']
+        encrypted_message = req['payload']['message_content']
 
-    encrypted_message = req['payload']['message_content']
+        # the decrypted message from client
+        message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
 
-    message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
-    print(color(f"Message received: {message}", BLUE))
+        # add time to message
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%H:%M")
 
-    response = {
-        'header': {
-            'version': __api_version__,
-            'code': 1605
+        # print the message from the client to the screen with blue color
+        print(color(f"Message received ({formatted_time}): {message}", BLUE))
+
+        response = {
+            'header': {
+                'version': __api_version__,
+                'code': 1605
+            }
         }
-    }
+    else:
+        response = {
+            'header': {
+                'version': __api_version__,
+                'code': 1609
+            }
+        }
+
     send(connection, RESPONSE, response)
 
 
 def not_found_controller(connection, req):
+    """
+    Handles a request with an invalid code.
+
+    Args:
+        connection (socket.socket): The socket connection to the client.
+        req (dict): The request received from the client.
+
+    Raises:
+        ValueError: Indicates that the request code is invalid.
+    """
     raise ValueError("Invalid request code")
