@@ -1,3 +1,4 @@
+from Client import data
 from lib.ServerException import ServerException
 # from config import __user_creds_filename__, read_kdc_server_info
 import config as cfg
@@ -63,6 +64,8 @@ def send_message_gui(client, server):
     # send the message to the Messages server
     send_message(client_id, client_password, server, message)
 
+    return False
+
 
 def main():
 
@@ -71,6 +74,9 @@ def main():
         # read KDC server info file
         cfg.read_kdc_server_info()
 
+        # load database
+        data.load_db()
+
         # load client from file, if not exist, register new client
         client = get_client_info_gui()
         print(f"Client info: ", client)
@@ -78,8 +84,12 @@ def main():
         # ask client to choose a server to send a message.
         selected_server = choose_server_gui(client)
 
-        # ask client to write a message to send to the selected server.
-        send_message_gui(client, selected_server)
+        while True:
+            # ask client to write a message to send to the selected server.
+            is_quit = send_message_gui(client, selected_server)
+
+            if is_quit:
+                break
 
     except ServerException as se:
         print(se)

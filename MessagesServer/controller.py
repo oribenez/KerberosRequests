@@ -80,10 +80,11 @@ def send_message(connection, req):
     client_id = req['header']['client_id']
     aes_key = data.db['tickets'].get_aes_key(client_id)
     iv = req['payload']['iv']
-    encrypted_message = req['payload']['message_content']  # FIXME: problem with unpacking the last var, it is unpacking only 1 byte
-    print('encrypted_message: ', encrypted_message)
-    message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
 
+    encrypted_message = req['payload']['message_content']
+    print('encrypted_message: ', encrypted_message)
+
+    message = decrypt_aes_cbc(aes_key, iv, encrypted_message).decode('utf-8')
     print(color(f"Message received: {message}", BLUE))
 
     response = {

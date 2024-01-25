@@ -2,6 +2,7 @@ import secrets
 import sys
 import time
 
+from Client import data
 from lib.ServerException import ServerException
 from lib.utils import send_request, hash_password, decrypt_aes_cbc, \
     encrypt_aes_cbc
@@ -155,22 +156,48 @@ def send_symmetric_key_msg_server(client_id, server_info, session_aes_key, ticke
 def send_message(client_id, client_password, server_info, message):
     server_id, server_ip, server_port = server_info["server_id"], server_info["server_ip"], server_info["server_port"]
 
-    iv, aes_key, ticket = get_symmetric_key_kdc(client_id, client_password, server_id)
-    send_symmetric_key_msg_server(client_id, server_info, aes_key, ticket)
+    # Resend message if ticket is invalid or server error
+    resend_amount_if_fails = 2
+    is_resend = False
+    for i in range(resend_amount_if_fails):
 
-    _, encrypted_message = encrypt_aes_cbc(aes_key, message.encode('utf-8'), iv)
-    message_size = sys.getsizeof(encrypted_message)
-    print("encrypted_message: ", encrypted_message)
-    request = {
-        'header': {
-            'client_id': client_id,
-            'version': __api_version__,
-            'code': 1029
-        }, 'payload': {
-            'message_size': message_size,
-            'iv': iv,
-            'message_content': encrypted_message
+        key = data.db['keys'].get_key_by_server_id(server_id)
+        if key is None or is_resend:
+            # get a new ticket and send it to the MSG server
+            iv, aes_key, ticket = get_symmetric_key_kdc(client_id, client_password, server_id)
+            send_symmetric_key_msg_server(client_id, server_info, aes_key, ticket)
+
+            # add key to keys db
+            key = {
+                'iv': iv,
+                'aes_key': aes_key,
+                'server_id': server_id
+            }
+            data.db['keys'].add_key(key)
+        else:
+            iv, aes_key = key['iv'], key['aes_key']
+
+        # Encrypt [Message] with [Session key]
+        _, encrypted_message = encrypt_aes_cbc(aes_key, message.encode('utf-8'), iv)
+
+        message_size = sys.getsizeof(encrypted_message)
+        print("encrypted_message: ", encrypted_message)
+        request = {
+            'header': {
+                'client_id': client_id,
+                'version': __api_version__,
+                'code': 1029
+            }, 'payload': {
+                'message_size': message_size,
+                'iv': iv,
+                'message_content': encrypted_message
+            }
         }
-    }
-    response = send_request(server_ip, server_port, request)
-    print(response)
+        response = send_request(server_ip, server_port, request)
+        print(response)
+
+        if response['header']['code'] == 1605:
+            break
+
+        is_resend = True
+
