@@ -24,7 +24,7 @@ def handle_request(connection):
     controller = 'undefined'
     try:
         # Receive request from client
-        data_receive = receive_data(connection)
+        data_receive = receive_data(connection, REQUEST)
         req = unpack_data(package_dict, REQUEST, data_receive)
 
         req_code = str(req['header']['code'])

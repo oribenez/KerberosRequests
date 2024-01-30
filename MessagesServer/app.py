@@ -7,7 +7,7 @@ from api import register_new_server
 from lib.ServerException import ServerException
 from lib.config import package_dict
 from routes import routes
-from lib.utils import receive_data, unpack_data, REQUEST, send, RESPONSE, unpack_key_hex, unpack_key_base64
+from lib.utils import receive_data, unpack_data, REQUEST, send, RESPONSE, unpack_key_hex, unpack_key_base64, color, RED
 from config import (__api_version__,
                     __server_creds_filename__)
 import config as cfg
@@ -27,7 +27,7 @@ def handle_request(connection):
     controller = 'undefined'
     try:
         # Receive request from client
-        data_receive = receive_data(connection)
+        data_receive = receive_data(connection, REQUEST)
         req = unpack_data(package_dict, REQUEST, data_receive)
 
         req_code = str(req['header']['code'])
@@ -184,7 +184,10 @@ def main():
         if server_info:
             run_server()
     except ServerException as se:
-        print(se)
+        print(color(str(se), RED))
+    except KeyboardInterrupt:
+        print("\nBye Bye...")
+        sys.exit()
 
 
 if __name__ == "__main__":

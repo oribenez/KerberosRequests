@@ -100,6 +100,7 @@ def send_message(connection, req):
 
     client_id = req['header']['client_id']
     aes_key = data.db['tickets'].get_aes_key(client_id)
+
     if aes_key is not None:
         iv = req['payload']['iv']
         encrypted_message = req['payload']['message_content']

@@ -6,7 +6,7 @@ import struct
 import sys
 from itertools import cycle
 
-from lib.config import salt as general_salt, package_dict as general_package_dict
+from lib.config import salt as general_salt, package_dict as general_package_dict, package_dict
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Random import get_random_bytes
@@ -127,7 +127,6 @@ def encrypt_aes_cbc(key: bytes, data: bytes, iv: bytes = None) -> (bytes, bytes)
     return cipher.iv, ciphered_data
 
 
-
 """
 REQUEST, RESPONSE: str
     Constants representing the types of communication messages - request and response.
@@ -212,9 +211,10 @@ def pack_data(package_dict: dict, packing_type: str, req: dict) -> bytes:
             # assume last value is in bytes type
             payload_format_cycled_per_keys += f'{len(last_val)}s'
         packed_payload = struct.pack(payload_format_cycled_per_keys, *payload)
-    else:
-        req['header']['payload_size'] = 0
 
+
+    # calculate payload size
+    req['header']['payload_size'] = len(packed_payload)
     header = tuple(req['header'].values())
     header = tuple(value.encode("utf-8") if isinstance(value, str) else value for value in header)
 
@@ -332,9 +332,6 @@ def send_data(connection, data: bytes):
     - connection: Connection object.
     - data (bytes): Data to be sent.
     """
-    # Send the size of the data
-    data_size = len(data)
-    connection.sendall(struct.pack("!I", data_size))
 
     # Send the data in chunks
     chunk_size = 1024
@@ -342,7 +339,7 @@ def send_data(connection, data: bytes):
         connection.sendall(data[i:i + chunk_size])
 
 
-def receive_data(connection, timeout=10) -> bytes:
+def receive_data(connection, packing_type: str, timeout=10) -> bytes:
     """
     Receive data from the specified connection.
 
@@ -357,10 +354,15 @@ def receive_data(connection, timeout=10) -> bytes:
     connection.settimeout(timeout)  # Set a timeout for this connection
 
     # Receive the size of the data
-    size_data = connection.recv(4)
-    data_size = struct.unpack("!I", size_data)[0]
+    header_format = package_dict[packing_type]['header']['format']
+    header_size = struct.calcsize(header_format)
+    header_chunk = connection.recv(header_size)
+    header_values = struct.unpack(header_format, header_chunk)
+    payload_size = header_values[-1]  # payload_size
+    data_size = header_size + payload_size
+
     # Receive the data in chunks
-    received_data = b""
+    received_data = header_chunk
     while len(received_data) < data_size:
         chunk = connection.recv(min(1024, data_size - len(received_data)))
         if not chunk:
@@ -391,7 +393,7 @@ def send_request(ip, port, data: dict) -> dict:
         send(connection, REQUEST, data)
 
         # Get response back
-        response = receive_data(connection)
+        response = receive_data(connection, RESPONSE)
         unpacked_res = unpack_data(general_package_dict, RESPONSE, response)
 
         return unpacked_res
@@ -405,12 +407,12 @@ def send_request(ip, port, data: dict) -> dict:
 
 
 # ANSI escape codes for some colors
-RED = "\033[91m"      # Red
-GREEN = "\033[92m"    # Green
-YELLOW = "\033[93m"   # Yellow
-BLUE = "\033[94m"     # Blue
+RED = "\033[91m"  # Red
+GREEN = "\033[92m"  # Green
+YELLOW = "\033[93m"  # Yellow
+BLUE = "\033[94m"  # Blue
 MAGENTA = "\033[95m"  # Magenta
-CYAN = "\033[96m"     # Cyan
+CYAN = "\033[96m"  # Cyan
 
 
 def color(text, color_code):

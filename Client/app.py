@@ -2,7 +2,7 @@ from Client import data
 from lib.ServerException import ServerException
 # from config import __user_creds_filename__, read_kdc_server_info
 import config as cfg
-from lib.utils import color, GREEN, bold
+from lib.utils import color, GREEN, bold, RED, CYAN
 from utils import read_user_from_file
 from api import register_new_user, get_servers_list, send_message
 
@@ -84,7 +84,8 @@ def send_message_gui(client: dict, server: dict) -> bool:
         - bool: False.
         """
     print(f"Type the message you want to send \"{server['name']}\" [end-to-end encrypted]\n")
-    message = input(color("Message:\n‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
+    message = input(color("Message: ", GREEN) + "(type ':q' to return to servers list)\n" + color("‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
+
     if message == ':q':
         return True
     elif message == '':
@@ -106,7 +107,7 @@ def send_message_gui(client: dict, server: dict) -> bool:
         # delete the password since it is maybe the problem for the issue
         # maybe the user typed a wrong password
         del data.db['client_password']
-        print('Maybe the password you\'ve entered is wrong, or the problem is with the Messaging server.')
+        print(color('Maybe the password you\'ve entered is wrong, or the problem is with the Messaging server.', CYAN))
         raise e
 
     return False
@@ -145,7 +146,7 @@ def main():
 
             break
         except ServerException as se:
-            print(se)
+            print(color(str(se), RED))
 
     while True:
         try:
@@ -160,7 +161,7 @@ def main():
                 if is_quit:
                     break
         except ServerException as se:
-            print(se)
+            print(color(str(se), RED))
 
 
 if __name__ == "__main__":
