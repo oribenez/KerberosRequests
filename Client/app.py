@@ -20,14 +20,23 @@ def get_client_info_gui() -> dict:
 
         # ask from client to sign up
         while True:
-            user_name = input("Please type your name: ") or 'Michael Jackson'  # FIXME: for testing only
+            user_name = input("Please type your name: ").strip()
 
             if len(user_name) > 255:
                 print("Username must be max 255 characters. ")
+            elif len(user_name) == 0:
+                print("Please type username")
             else:
                 break
 
-        user_pass = input("Please type password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
+        while True:
+            user_pass = input("Please type password: ").strip()
+            if len(user_pass) > 16:
+                print("Password must be max 16 characters. ")
+            elif len(user_pass) == 0:
+                print("Please type password")
+            else:
+                break
 
         # register new client at KDC server
         client = register_new_user(user_name, user_pass)
@@ -95,7 +104,12 @@ def send_message_gui(client: dict, server: dict) -> bool:
     if 'client_password' in data.db:
         client_password = data.db['client_password']
     else:
-        client_password = input("Type your password: ") or 'Avocado&Salt4Me'  # FIXME: for testing only
+        while True:
+            client_password = input("Type your password: ").strip()
+            if len(client_password) == 0:
+                print("Please type password")
+            else:
+                break
 
         # save client's password to not ask him each time he sends a message
         data.db['client_password'] = client_password

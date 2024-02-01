@@ -76,7 +76,7 @@ def get_servers_list(client):
     response = send_request(cfg.__kdc_server_ip__, cfg.__kdc_server_port__, request)
 
     # expecting a list in payload
-    servers_list = response['payload']  # FIXME
+    servers_list = response['payload']
 
     return servers_list
 
@@ -97,8 +97,8 @@ def get_symmetric_key_kdc(client_id: str, client_password: str, server_id: str) 
         - ServerException: Raised in case of errors during the key exchange process.
         """
 
-    # Generate a random nonce (16 bytes)
-    nonce = secrets.token_hex(16)
+    # Generate a random nonce (8 bytes)
+    nonce = secrets.token_hex(8)
 
     request = {
         'header': {
@@ -119,8 +119,15 @@ def get_symmetric_key_kdc(client_id: str, client_password: str, server_id: str) 
     symmetric_key = response['payload']['symmetric_key']
     iv = symmetric_key['symm_iv']
     encrypted_session_aes_key = symmetric_key['aes_key']
+    encrypted_nonce = symmetric_key['nonce']
+
     client_password_hash = hash_password(client_password, salt)
     decrypted_session_aes_key = decrypt_aes_cbc(client_password_hash, iv, encrypted_session_aes_key)
+    decrypted_nonce = decrypt_aes_cbc(client_password_hash, iv, encrypted_nonce)
+
+    # Check if nonces are different
+    if nonce != decrypted_nonce:
+        raise ServerException()
 
     ticket = response['payload']['ticket']
 

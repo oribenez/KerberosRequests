@@ -108,10 +108,12 @@ def read_server_creds_from_file(filename='msg.info'):
             else:
                 # ask from user the server name to register
                 while True:
-                    name = input("Please type server name: ") or 'Printer'  # FIXME: for testing only
+                    name = input("Please type server name: ").strip()
 
-                    if len(name) > 100:
-                        print("Server name must be max 100 characters. ")
+                    if len(name) > 255:
+                        print("Server name must be max 255 characters. ")
+                    elif len(name) == 0:
+                        print("Please type server name. ")
                     else:
                         break
 
