@@ -2,6 +2,8 @@ import secrets
 import sys
 import time
 
+from Crypto.Random import get_random_bytes
+
 from Client import data
 from lib.ServerException import ServerException
 from lib.utils import send_request, hash_password, decrypt_aes_cbc, \
@@ -98,7 +100,7 @@ def get_symmetric_key_kdc(client_id: str, client_password: str, server_id: str) 
         """
 
     # Generate a random nonce (8 bytes)
-    nonce = secrets.token_hex(8)
+    nonce = get_random_bytes(8)
 
     request = {
         'header': {

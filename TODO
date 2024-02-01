@@ -1,5 +1,5 @@
 1. V - need to add documentation to all functions
-2.   - take care of nonce value
+2. V - take care of nonce value
 3. V - make sure large messages transmit good without issues
 4. V - take care of edge cases
 5.   - run this project in Visual Studio 2022

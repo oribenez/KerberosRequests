@@ -47,7 +47,7 @@ package_dict = {
             '1024': {'format': '<255s255s', 'keys': ('name', 'password'), 'types': (str, str)},
             '1025': {'format': '<255s32s16sH', 'keys': ('name', 'aes_key', 'server_ip', 'server_port'), 'types': (str, bytes, str, int)},
             '1026': None,
-            '1027': {'format': '<16s8s', 'keys': ('server_id', 'nonce'), 'types': (str, int)},
+            '1027': {'format': '<16s8s', 'keys': ('server_id', 'nonce'), 'types': (str, bytes)},
 
             # MSG Server
             '1028': {'format': '<16s16s32s32s32sB16s16sf16s48s16s',
