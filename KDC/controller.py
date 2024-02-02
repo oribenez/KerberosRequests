@@ -10,8 +10,8 @@ from lib.config import salt
 from config import __api_version__
 from lib.utils import pack_key_hex, hash_password, encrypt_aes_cbc, pack_key_base64, unpack_key_hex, unpack_key_base64, \
     send, RESPONSE, color, RED, decrypt_aes_cbc, GREEN
-from utils import generate_random_uuid
-import KDC.db.models as models
+from KDC.utils import generate_random_uuid
+import db.models as models
 
 
 def register_client(connection, req):

@@ -1,5 +1,4 @@
-from MessagesServer.data.Tickets import Tickets
-
+from .Tickets import Tickets
 db = {}
 
 

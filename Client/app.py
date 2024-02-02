@@ -1,9 +1,11 @@
+import sys
+import __init__
+
 from Client import data
 from lib.ServerException import ServerException
-# from config import __user_creds_filename__, read_kdc_server_info
-import config as cfg
+import Client.config as cfg
 from lib.utils import color, GREEN, bold, RED, CYAN
-from utils import read_user_from_file
+from Client.utils import read_user_from_file
 from api import register_new_user, get_servers_list, send_message
 
 
@@ -37,6 +39,9 @@ def get_client_info_gui() -> dict:
                 print("Please type password")
             else:
                 break
+
+        # save user password for further KDC interactions
+        data.db['client_password'] = user_pass
 
         # register new client at KDC server
         client = register_new_user(user_name, user_pass)
@@ -93,7 +98,8 @@ def send_message_gui(client: dict, server: dict) -> bool:
         - bool: False.
         """
     print(f"Type the message you want to send \"{server['name']}\" [end-to-end encrypted]\n")
-    message = input(color("Message: ", GREEN) + "(type ':q' to return to servers list)\n" + color("‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
+    message = input(color("Message: ", GREEN) + "(type ':q' to return to servers list)\n" + color(
+        "‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾\n", GREEN))
 
     if message == ':q':
         return True
@@ -145,37 +151,47 @@ def main():
         """
 
     # GUI
-    max_try = 3
-    for i in range(max_try):
-        try:
-            # read KDC server info file
-            cfg.read_kdc_server_info()
+    try:
 
-            # load database
-            data.load_db()
+        max_try = 3
+        for i in range(max_try):
+            try:
+                # read KDC server info file
+                cfg.read_kdc_server_info()
 
-            # load client from file, if not exist, register new client
-            client = get_client_info_gui()
-            print(f"Client info: ", client)
+                # load database
+                data.load_db()
 
-            break
-        except ServerException as se:
-            print(color(str(se), RED))
+                # load client from file, if not exist, register new client
+                client = get_client_info_gui()
+                print(f"Client info: ", client)
 
-    while True:
-        try:
-            # ask client to choose a server to send a message.
-            selected_server = choose_server_gui(client)
+                break
+            except ServerException as se:
+                print(color(str(se), RED))
 
-            while True:
-                # ask client to write a message to send to the selected server.
-                is_quit = send_message_gui(client, selected_server)
+        while True:
+            try:
+                # ask client to choose a server to send a message.
+                selected_server = choose_server_gui(client)
 
-                # if the user type the message ':q' then it will return to menu to choose server
-                if is_quit:
-                    break
-        except ServerException as se:
-            print(color(str(se), RED))
+                while True:
+                    # ask client to write a message to send to the selected server.
+                    is_quit = send_message_gui(client, selected_server)
+
+                    # if the user type the message ':q' then it will return to menu to choose server
+                    if is_quit:
+                        break
+            except ServerException as se:
+                print(color(str(se), RED))
+
+    except KeyboardInterrupt:
+        print("\nServer shutting down...")
+        sys.exit()
+    except Exception as e:
+        print(e)
+        print("\nServer shutting down...")
+        sys.exit()
 
 
 if __name__ == "__main__":

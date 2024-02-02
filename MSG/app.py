@@ -1,6 +1,7 @@
 import socket
 import sys
 import threading
+import __init__
 
 import data
 from api import register_new_server
@@ -8,9 +9,8 @@ from lib.ServerException import ServerException
 from lib.config import package_dict
 from routes import routes
 from lib.utils import receive_data, unpack_data, REQUEST, send, RESPONSE, unpack_key_hex, unpack_key_base64, color, RED
-from config import (__api_version__,
-                    __server_creds_filename__)
-import config as cfg
+from MSG.config import __api_version__, __server_creds_filename__
+import MSG.config as cfg
 
 
 def handle_request(connection):

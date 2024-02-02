@@ -1,8 +1,10 @@
 import base64
 import binascii
 import json
+import os
 import socket
 import struct
+import platform
 import sys
 from itertools import cycle
 
@@ -407,12 +409,12 @@ def send_request(ip, port, data: dict) -> dict:
 
 
 # ANSI escape codes for some colors
-RED = "\033[91m"  # Red
-GREEN = "\033[92m"  # Green
-YELLOW = "\033[93m"  # Yellow
-BLUE = "\033[94m"  # Blue
-MAGENTA = "\033[95m"  # Magenta
-CYAN = "\033[96m"  # Cyan
+RED = "91"  # Red
+GREEN = "92"  # Green
+YELLOW = "93"  # Yellow
+BLUE = "94"  # Blue
+MAGENTA = "95"  # Magenta
+CYAN = "96"  # Cyan
 
 
 def color(text, color_code):
@@ -426,7 +428,14 @@ def color(text, color_code):
     Returns:
         str: The colored text.
     """
-    return f"{color_code}{text}\033[0m"
+    # Check if the platform supports ANSI escape codes
+    colors_supported = platform.system() != 'Windows' or 'ANSICON' in os.environ or 'CONEMUANSI' in os.environ
+
+    if colors_supported:
+        # Add ANSI escape codes to the text
+        return f"\033[{color_code}m{text}\033[0m"
+    else:
+        return text
 
 
 def bold(text):
@@ -439,4 +448,11 @@ def bold(text):
     Returns:
         str: The bold-formatted text.
     """
-    return "\033[1m" + text + "\033[0m"
+
+    # Check if the platform supports ANSI escape codes
+    bold_supported = platform.system() != 'Windows' or 'ANSICON' in os.environ or 'CONEMUANSI' in os.environ
+
+    if bold_supported:
+        return "\033[1m" + text + "\033[0m"
+    else:
+        return text

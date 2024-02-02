@@ -8,7 +8,7 @@ from Client import data
 from lib.ServerException import ServerException
 from lib.utils import send_request, hash_password, decrypt_aes_cbc, \
     encrypt_aes_cbc, color, GREEN
-import config as cfg
+import Client.config as cfg
 from lib.config import __api_version__
 from lib.config import salt
 

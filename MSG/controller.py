@@ -1,7 +1,7 @@
 import time
 from datetime import datetime
 
-from MessagesServer.utils import are_timestamps_close
+from MSG.utils import are_timestamps_close
 from lib.utils import decrypt_aes_cbc, send, RESPONSE, color, GREEN, BLUE
 from config import __api_version__
 from lib.ServerException import ServerException

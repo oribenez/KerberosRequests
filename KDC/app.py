@@ -1,13 +1,14 @@
 import socket
 import sys
 import threading
+import __init__
 
 from lib.config import package_dict
 from lib.utils import receive_data, unpack_data, REQUEST, send, RESPONSE
-from utils import read_port_from_file
+from KDC.utils import read_port_from_file
 from routes import routes
 from config import __api_version__
-import KDC.db.models as models
+import db.models as models
 
 
 def handle_request(connection):

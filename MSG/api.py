@@ -2,9 +2,8 @@ from Crypto.Random import get_random_bytes
 
 from lib.ServerException import ServerException
 from lib.utils import pack_key_base64, send_request, pack_key_hex
-from config import (__api_version__,
-                    __server_creds_filename__)
-import config as cfg
+from MSG.config import __api_version__, __server_creds_filename__
+import MSG.config as cfg
 
 
 def register_new_server(server_info):
